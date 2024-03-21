@@ -16,7 +16,7 @@ public class UIManagaer : MonoBehaviour
     //Zasilanie
     [SerializeField] TMP_Text zasilanieZPompowniText;
     [SerializeField] TMP_Text zasilanieZeZbiornikaText;
-    //wplywyNaOdcinkachRozdwojone 
+    //doubleInFlowsOnPipes 
     [SerializeField] TMP_Text[] wplywyNaOdcinkachText;
     [SerializeField] TMP_Text[] wplywyNaWezlachText;
     //odplyw
@@ -97,16 +97,17 @@ public class UIManagaer : MonoBehaviour
         {
             odplywyNaOdcinkachText[i] = dzieckoZero.GetComponent<TMP_Text>();
         }
-        odplywyNaOdcinkachText[i].text = appLogic.odplywyNaOdcinkach[i].ToString();
+        odplywyNaOdcinkachText[i].text = appLogic.pipesOutFlows[i].ToString();
         odplywyNaOdcinkachText[i].color = Color.green;
     }
+
 
     public void Wezly()
     {
         updatedInfo.text = "rozbiory na wezlach: ";
         for (int node = 0; node < 8; node++)
         {
-            updatedInfo.text = updatedInfo.text + $"\nRozbior na wezle {node}:  {appLogic.odplywyNaWezlach[node]}";
+            updatedInfo.text = updatedInfo.text + $"\nRozbior na wezle {node}:  {appLogic.nodesOutFlow[node]}";
             //Debug.Log(updatedInfo.text);
         }
     }

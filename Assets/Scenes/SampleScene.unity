@@ -3852,6 +3852,10 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   updatedInfo: {fileID: 1329596170}
+  dzieckoZero: {fileID: 0}
+  dzieckoOne: {fileID: 0}
+  dzieckoDwa: {fileID: 0}
+  dzieckoWezel: {fileID: 0}
 --- !u!1 &653605627
 GameObject:
   m_ObjectHideFlags: 0
