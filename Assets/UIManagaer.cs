@@ -53,15 +53,37 @@ public class UIManagaer : MonoBehaviour
     {
         AssignChildTransform(pipeIndex);
         //Debug.Log(appLogic.kierunekPrzeplywu[i]);
-        if (appLogic.kierunekPrzeplywu[pipeIndex] == true)
+        if (appLogic.pipesOutFlows[pipeIndex] != 0)
         {
-            wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-            wplywyNaOdcinkachText[pipeIndex].text = appLogic.wplywyNaOdcinkach[pipeIndex].ToString();
+            if (appLogic.kierunekPrzeplywu[pipeIndex] == true)
+            {
+                wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
+                wplywyNaOdcinkachText[pipeIndex].text = appLogic.pipesInFlows[pipeIndex].ToString();
+            }
+            else if (appLogic.kierunekPrzeplywu[pipeIndex] == false)
+            {
+                wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
+                wplywyNaOdcinkachText[pipeIndex].text = appLogic.pipesInFlows[pipeIndex].ToString();
+            }
         }
-        else if (appLogic.kierunekPrzeplywu[pipeIndex] == false)
+        else if (appLogic.pipesOutFlows[pipeIndex] == 0)
         {
-            wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-            wplywyNaOdcinkachText[pipeIndex].text = appLogic.wplywyNaOdcinkach[pipeIndex].ToString();
+            if (appLogic.kierunekPrzeplywu[pipeIndex] == true)
+            {
+                wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
+                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][0].ToString();
+
+                wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
+                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][1].ToString();
+            }
+            else if (appLogic.kierunekPrzeplywu[pipeIndex] == false)
+            {
+                wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
+                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][1].ToString();
+
+                wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
+                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][0].ToString();
+            }
         }
     }
 
@@ -69,11 +91,11 @@ public class UIManagaer : MonoBehaviour
     public void PrzypiszWartosciRozbiorow()
     {
         string node = "wezelek";
-        for (int i = 0; i < appLogic.rozbioryNaOdcinkach.Length; i++)
+        for (int i = 0; i < appLogic.pipesRozbiory.Length; i++)
         {
             AssignChildTransform(i);
             rozbioryNaOdcinkachText[i] = dzieckoOne.GetComponent<TMP_Text>();
-            rozbioryNaOdcinkachText[i].text = appLogic.rozbioryNaOdcinkach[i].ToString();
+            rozbioryNaOdcinkachText[i].text = appLogic.pipesRozbiory[i].ToString();
             rozbioryNaOdcinkachText[i].color = Color.red;
         }
         for (int i = 0; i < appLogic.rozbioryNaWezlach.Length; i++)
@@ -89,16 +111,23 @@ public class UIManagaer : MonoBehaviour
     public void PrzypiszWartosciOdplywow(int i)
     {
         AssignChildTransform(i);
-        if (appLogic.kierunekPrzeplywu[i] == true)
+        if (appLogic.pipesOutFlows[i] != 0)
         {
-            odplywyNaOdcinkachText[i] = dzieckoDwa.GetComponent<TMP_Text>();
+            if (appLogic.kierunekPrzeplywu[i] == true)
+            {
+                odplywyNaOdcinkachText[i] = dzieckoDwa.GetComponent<TMP_Text>();
+            }
+            else if (appLogic.kierunekPrzeplywu[i] == false)
+            {
+                odplywyNaOdcinkachText[i] = dzieckoZero.GetComponent<TMP_Text>();
+            }
+            odplywyNaOdcinkachText[i].text = appLogic.pipesOutFlows[i].ToString();
+            odplywyNaOdcinkachText[i].color = Color.green;
         }
-        else if (appLogic.kierunekPrzeplywu[i] == false)
+        else if(appLogic.pipesOutFlows[i] == 0)
         {
-            odplywyNaOdcinkachText[i] = dzieckoZero.GetComponent<TMP_Text>();
+            Debug.Log("niezaktualizowano odplywow.");
         }
-        odplywyNaOdcinkachText[i].text = appLogic.pipesOutFlows[i].ToString();
-        odplywyNaOdcinkachText[i].color = Color.green;
     }
 
 
