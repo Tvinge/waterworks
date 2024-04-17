@@ -5,10 +5,10 @@ using TMPro;
 using UnityEngine.Events;
 
 
-public class UIManagaer : MonoBehaviour
+public class UIManager : MonoBehaviour
 {
-    [SerializeField] AppLogic appLogic;
     [SerializeField] GameObject wodociag;
+    [SerializeField] AppLogic appLogic;
 
     //Rozbior
     [SerializeField] TMP_Text[] rozbioryNaOdcinkachText;
@@ -16,7 +16,7 @@ public class UIManagaer : MonoBehaviour
     //Zasilanie
     [SerializeField] TMP_Text zasilanieZPompowniText;
     [SerializeField] TMP_Text zasilanieZeZbiornikaText;
-    //doubleInFlowsOnPipes 
+    //doubleInflowsOnPipes 
     [SerializeField] TMP_Text[] wplywyNaOdcinkachText;
     [SerializeField] TMP_Text[] wplywyNaWezlachText;
     //odplyw
@@ -30,115 +30,134 @@ public class UIManagaer : MonoBehaviour
     [SerializeField] Transform dzieckoDwa;
     [SerializeField] Transform dzieckoWezel;
 
+    private DataVersion previousDataVersion;
+
+
     private void Start()
     {
-    }        
-    private void Update()
-    {
-
+        appLogic.updateData += OnDataUpdated;
+        previousDataVersion = default(DataVersion);
     }
 
+    void OnDataUpdated(DataVersion d)
+    {
+        int index = d.index;
+        float[] nodesRozbiory = d.nodesRozbiory;//
+        float[] nodesOutflow = d.nodesOutflow;
+        float[] pipesRozbiory = d.pipesRozbiory;//
+        bool[] kierunekPrzeplywu = d.kierunekPrzeplywu;
+        float[] pipesOutflows = d.pipesOutflows;
+        float[] pipesInflows = d.pipesInflows;
+        float[][] doubleInflowsOnPipes = d.doubleInflowsOnPipes;
+
+        PrzypiszWartosciRozbiorow(nodesRozbiory, pipesRozbiory);
+        UpdateOutflowsOnNodes(nodesOutflow);
+        UpdatePipesOutflow(pipesOutflows, kierunekPrzeplywu);
+        UpdateInflowValues(pipesOutflows, pipesInflows, doubleInflowsOnPipes, kierunekPrzeplywu);
+
+        previousDataVersion = d;
+    }
     void AssignChildTransform(int Index)
     {
         dzieckoZero = GetComponent<Transform>().GetChild(1).GetChild(0).GetChild(Index).GetChild(0).GetChild(0).GetChild(0);
         dzieckoOne = GetComponent<Transform>().GetChild(1).GetChild(0)?.GetChild(Index)?.GetChild(0)?.GetChild(1)?.GetChild(0);
         dzieckoDwa = GetComponent<Transform>().GetChild(1).GetChild(0).GetChild(Index).GetChild(0).GetChild(2).GetChild(0);
     }
+
     void AssignChildTransform(int Index, string node)
     {
         dzieckoWezel = GetComponent<Transform>().GetChild(1).GetChild(1).GetChild(Index).GetChild(2).GetChild(0);
     }
+
     //przypisywanie wartosci wplywow na odcinkach
-    public void PrzypiszWartosciWplywow(int pipeIndex)
+    public void UpdateInflowValues(float[] pipesOutflows, float[] pipesInflows, float[][] doubleInFlowsOnPipes, bool[] kierunekPrzeplywu)
     {
-        AssignChildTransform(pipeIndex);
-        //Debug.Log(appLogic.kierunekPrzeplywu[i]);
-        if (appLogic.pipesOutFlows[pipeIndex] != 0)
+        for (int pipeIndex = 0; pipeIndex < pipesOutflows.Length; pipeIndex++)
         {
-            if (appLogic.kierunekPrzeplywu[pipeIndex] == true)
+            AssignChildTransform(pipeIndex);
+            if (pipesOutflows[pipeIndex] != 0)
             {
-                wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-                wplywyNaOdcinkachText[pipeIndex].text = appLogic.pipesInFlows[pipeIndex].ToString();
+                if (kierunekPrzeplywu[pipeIndex] == true)
+                {
+                    wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
+                    wplywyNaOdcinkachText[pipeIndex].text = pipesInflows[pipeIndex].ToString();
+                }
+                else if (kierunekPrzeplywu[pipeIndex] == false)
+                {
+                    wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
+                    wplywyNaOdcinkachText[pipeIndex].text = pipesInflows[pipeIndex].ToString();
+                }
             }
-            else if (appLogic.kierunekPrzeplywu[pipeIndex] == false)
+            else if (pipesOutflows[pipeIndex] == 0)
             {
-                wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-                wplywyNaOdcinkachText[pipeIndex].text = appLogic.pipesInFlows[pipeIndex].ToString();
-            }
-        }
-        else if (appLogic.pipesOutFlows[pipeIndex] == 0)
-        {
-            if (appLogic.kierunekPrzeplywu[pipeIndex] == true)
-            {
-                wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][0].ToString();
+                if (kierunekPrzeplywu[pipeIndex] == true)
+                {
+                    wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
+                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][0].ToString();
 
-                wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][1].ToString();
-            }
-            else if (appLogic.kierunekPrzeplywu[pipeIndex] == false)
-            {
-                wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][1].ToString();
+                    wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
+                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][1].ToString();
+                }
+                else if (kierunekPrzeplywu[pipeIndex] == false)
+                {
+                    wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
+                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][1].ToString();
 
-                wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-                wplywyNaOdcinkachText[pipeIndex].text = appLogic.doubleInFlowsOnPipes[pipeIndex][0].ToString();
+                    wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
+                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][0].ToString();
+                }
             }
         }
     }
 
     //przypisywanie wartosci rozbiorow na odcinkach
-    public void PrzypiszWartosciRozbiorow()
+    public void PrzypiszWartosciRozbiorow(float[] nodesRozbiory, float[] pipesRozbiory)
     {
         string node = "wezelek";
-        for (int i = 0; i < appLogic.pipesRozbiory.Length; i++)
-        {
-            AssignChildTransform(i);
-            rozbioryNaOdcinkachText[i] = dzieckoOne.GetComponent<TMP_Text>();
-            rozbioryNaOdcinkachText[i].text = appLogic.pipesRozbiory[i].ToString();
-            rozbioryNaOdcinkachText[i].color = Color.red;
-        }
-        for (int i = 0; i < appLogic.rozbioryNaWezlach.Length; i++)
+        for (int i = 0; i < nodesRozbiory.Length; i++)
         {
             AssignChildTransform(i, node);
             rozbioryNaWezlachText[i] = dzieckoWezel.GetComponent<TMP_Text>();
-            rozbioryNaWezlachText[i].text = appLogic.rozbioryNaWezlach[i].ToString();
+            rozbioryNaWezlachText[i].text = nodesRozbiory[i].ToString();
             rozbioryNaWezlachText[i].color = Color.red;
+        }
+        for (int i = 0; i < pipesRozbiory.Length; i++)
+        {
+            AssignChildTransform(i);
+            rozbioryNaOdcinkachText[i] = dzieckoOne.GetComponent<TMP_Text>();
+            rozbioryNaOdcinkachText[i].text = pipesRozbiory[i].ToString();
+            rozbioryNaOdcinkachText[i].color = Color.red;
         }
     }
 
     //przypisywanie wartosci odplywow na odcinkach
-    public void PrzypiszWartosciOdplywow(int i)
+    public void UpdatePipesOutflow(float[] pipesOutflows, bool[] kierunekPrzeplywu)
     {
-        AssignChildTransform(i);
-        if (appLogic.pipesOutFlows[i] != 0)
+        for(int i = 0; i < pipesOutflows.Length; i++)
         {
-            if (appLogic.kierunekPrzeplywu[i] == true)
+            AssignChildTransform(i);
+            if (pipesOutflows[i] != 0)
             {
-                odplywyNaOdcinkachText[i] = dzieckoDwa.GetComponent<TMP_Text>();
+                if (kierunekPrzeplywu[i] == true)
+                {
+                    odplywyNaOdcinkachText[i] = dzieckoDwa.GetComponent<TMP_Text>();
+                }
+                else if (kierunekPrzeplywu[i] == false)
+                {
+                    odplywyNaOdcinkachText[i] = dzieckoZero.GetComponent<TMP_Text>();
+                }
+                odplywyNaOdcinkachText[i].text = pipesOutflows[i].ToString();
+                odplywyNaOdcinkachText[i].color = Color.green;
             }
-            else if (appLogic.kierunekPrzeplywu[i] == false)
-            {
-                odplywyNaOdcinkachText[i] = dzieckoZero.GetComponent<TMP_Text>();
-            }
-            odplywyNaOdcinkachText[i].text = appLogic.pipesOutFlows[i].ToString();
-            odplywyNaOdcinkachText[i].color = Color.green;
-        }
-        else if(appLogic.pipesOutFlows[i] == 0)
-        {
-            Debug.Log("niezaktualizowano odplywow.");
         }
     }
 
-
-    public void Wezly()
+    public void UpdateOutflowsOnNodes(float[] nodesOutflow)
     {
         updatedInfo.text = "rozbiory na wezlach: ";
-        for (int node = 0; node < 8; node++)
+        for (int nodeIndex = 0; nodeIndex < nodesOutflow.Length; nodeIndex++)
         {
-            updatedInfo.text = updatedInfo.text + $"\nRozbior na wezle {node}:  {appLogic.nodesOutFlow[node]}";
-            //Debug.Log(updatedInfo.text);
+            updatedInfo.text = updatedInfo.text + $"\nRozbior na wezle {nodeIndex}:  {nodesOutflow[nodeIndex]}";
         }
     }
-
 }
