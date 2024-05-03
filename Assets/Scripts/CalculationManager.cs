@@ -7,17 +7,19 @@ public class CalculationManager : MonoBehaviour
 {
     [SerializeField] AppLogic appLogic;
 
-    float[] nodesRozbiory;
-    float[] nodesOutflow;
-    float[] nodesInflow;
-    float[] pipesRozbiory;
-    bool[] kierunekPrzeplywu;
-    float[] pipesOutflows;
-    float[] pipesInflows;
-    float[][] doubleInflowsOnPipes;
-    Dictionary<int, List<int>> _nodeAndAdjacentPipes = new Dictionary<int, List<int>>();
+    /*
+    float[] dataVersion.nodesRozbiory;
+    float[] dataVersion.nodesOutflow;
+    float[] dataVersion.nodesInflow;
+    float[] dataVersion.pipesRozbiory;
+    bool[] dataVersion.kierunekPrzeplywu;
+    float[] dataVersion.pipesOutflows;
+    float[] dataVersion.pipesInflows;
+    float[][] dataVersion.doubleInflowsOnPipes;
+    Dictionary<int, List<int>> dataVersion._nodeAndAdjacentPipes = new Dictionary<int, List<int>>();
     Dictionary<int, List<int>> _pipesAdjacentNodes = new Dictionary<int, List<int>>();
-
+    */
+    bool[] isCalculated = new bool[8];
     int stepCount = 0;
     int stepCountBackward = 7;
 
@@ -38,32 +40,33 @@ public class CalculationManager : MonoBehaviour
         stepCountBackward = 7;
     }
 
-
+    
     void OnDataUpdated(DataVersion d)
     {
 
         dataVersion = d;
-
+        /*
         Debug.Log("invoked datraevent");
-        nodesRozbiory = d.nodesRozbiory;//
-        nodesOutflow = d.nodesOutflow;
-        nodesInflow = d.nodesInflow;
-        pipesRozbiory = d.pipesRozbiory;//
-        kierunekPrzeplywu = d.kierunekPrzeplywu;
-        pipesOutflows = d.pipesOutflows;
-        pipesInflows = d.pipesInflows;
-        doubleInflowsOnPipes = d.doubleInflowsOnPipes;
+        dataVersion.nodesRozbiory = d.dataVersion.nodesRozbiory;//
+        dataVersion.nodesOutflow = d.dataVersion.nodesOutflow;
+        dataVersion.nodesInflow = d.dataVersion.nodesInflow;
+        dataVersion.pipesRozbiory = d.dataVersion.pipesRozbiory;//
+        dataVersion.kierunekPrzeplywu = d.dataVersion.kierunekPrzeplywu;
+        dataVersion.pipesOutflows = d.dataVersion.pipesOutflows;
+        dataVersion.pipesInflows = d.dataVersion.pipesInflows;
+        dataVersion.doubleInflowsOnPipes = d.dataVersion.doubleInflowsOnPipes;
         
-        if (_nodeAndAdjacentPipes != d._nodeAndAdjacentPipes)
+        if (dataVersion._nodeAndAdjacentPipes != d.dataVersion._nodeAndAdjacentPipes)
         {
-            _nodeAndAdjacentPipes = d._nodeAndAdjacentPipes;
+            dataVersion._nodeAndAdjacentPipes = d.dataVersion._nodeAndAdjacentPipes;
         }
         if (_pipesAdjacentNodes != d._pipesAdjacentNodes)
         {
             _pipesAdjacentNodes = d._pipesAdjacentNodes;
         }
-
+        */
     }
+
 
     void CalculateWholeIteration()
     {
@@ -77,44 +80,49 @@ public class CalculationManager : MonoBehaviour
     }
     void SearchForNextNodeIndexAndCalculateIt()
     {
-        if (stepCount == stepCountBackward)
+        if (isCalculated[stepCount] == true && isCalculated[stepCountBackward] == true && stepCount == stepCountBackward)
             return;
 
-        if (nodesOutflow[stepCount] > 0)
+        if (dataVersion.nodesOutflow[stepCount] > 0)
         {
             //KierunekPrzeplywu(stepCount, true);
             WaterFlow(stepCount);
             Debug.Log($"stepCount {stepCount}");
+            isCalculated[stepCount] = true;
             stepCount += 1;
+
         }
         else
         {
             //KierunekPrzeplywu(stepCountBackward, false);
             WaterFlow(stepCountBackward);
             Debug.Log($"stepCountBackward {stepCountBackward}");
+            isCalculated[stepCountBackward] = true;
             stepCountBackward -= 1;
+
         }
     }
+
     void WaterFlow(int nodeIndex)
     {
-        List<int> adjacentPipes = _nodeAndAdjacentPipes[nodeIndex];
+        List<int> adjacentPipes = dataVersion._nodeAndAdjacentPipes[nodeIndex];
         CalculateInflowOnPipesNextToNode(nodeIndex);
         for (int i = 0; i < adjacentPipes.Count; i++)
         {
-            CalculateOutflowOnPipe(adjacentPipes[i]);
+            CalculateOutflowOnPipe(dataVersion, adjacentPipes[i]);
             CalculateOutflowOnNode(ReturnAdjacentNode(adjacentPipes[i], nodeIndex));
         }
     }
     void CalculateInflowOnPipesNextToNode(int nodeIndex)
     {
         //tworzy liste z indexami pobliskich rur
-        List<int> adjacentPipes = _nodeAndAdjacentPipes[nodeIndex];
+        List<int> adjacentPipes = dataVersion._nodeAndAdjacentPipes[nodeIndex];
         List<int> uncalculatedPipeIndexes = new List<int>();
 
         for (int i = 0; i < adjacentPipes.Count; i++)
         {
             Debug.Log($"CalculateInFlowOnPipesNextNode. pipe index: {adjacentPipes[i]}, node: {ReturnAdjacentNode(adjacentPipes[i], nodeIndex)}");
-            if (pipesOutflows[adjacentPipes[i]] == 0 || nodesOutflow[ReturnAdjacentNode(adjacentPipes[i], nodeIndex)] == 0)
+            if (dataVersion.pipesOutflows[adjacentPipes[i]] == 0 || dataVersion.nodesOutflow[ReturnAdjacentNode(adjacentPipes[i], nodeIndex)] == 0)
             {//zastanowic sie nad waurnkiem //iteration 4
                 Debug.Log("dodana do nieobliczonych");
                 uncalculatedPipeIndexes.Add(adjacentPipes[i]);
@@ -124,7 +132,7 @@ public class CalculationManager : MonoBehaviour
 
         for (int i = 0; i < uncalculatedPipeIndexes.Count; i++)
         {
-            List<int> adjacentNodesToPipe = _pipesAdjacentNodes[uncalculatedPipeIndexes[i]];
+            List<int> adjacentNodesToPipe = dataVersion._pipesAdjacentNodes[uncalculatedPipeIndexes[i]];
             int[] adjacentNodes = new int[2];
             adjacentNodes[0] = nodeIndex;
             adjacentNodes[1] = ReturnAdjacentNode(uncalculatedPipeIndexes[i], nodeIndex);
@@ -138,16 +146,16 @@ public class CalculationManager : MonoBehaviour
         for (int i = 0; i < uncalculatedPipeIndexes.Count; i++)
         {
             //outflow on adjacentNodes[1] in adj...[i] pipe
-            float IOdplyw = nodesOutflow[adjacentNodesToAdjacentPipes[i].adjacentNodes[1]];
-            float IDoplyw = nodesInflow[adjacentNodesToAdjacentPipes[i].adjacentNodes[1]];
-            float IRozbiory = nodesRozbiory[adjacentNodesToAdjacentPipes[i].adjacentNodes[1]];
+            float IOdplyw = dataVersion.nodesOutflow[adjacentNodesToAdjacentPipes[i].adjacentNodes[1]];
+            float IDoplyw = dataVersion.nodesInflow[adjacentNodesToAdjacentPipes[i].adjacentNodes[1]];
+            float IRozbiory = dataVersion.nodesRozbiory[adjacentNodesToAdjacentPipes[i].adjacentNodes[1]];
             if (uncalculatedPipeIndexes.Count > 1)
             {
                 for (int j = i + 1; j < uncalculatedPipeIndexes.Count; j++)
                 {
-                    float JOdplyw = nodesOutflow[adjacentNodesToAdjacentPipes[j].adjacentNodes[1]];
-                    float JDoplyw = nodesInflow[adjacentNodesToAdjacentPipes[j].adjacentNodes[1]];
-                    float JRozbiory = nodesRozbiory[adjacentNodesToAdjacentPipes[j].adjacentNodes[1]];
+                    float JOdplyw = dataVersion.nodesOutflow[adjacentNodesToAdjacentPipes[j].adjacentNodes[1]];
+                    float JDoplyw = dataVersion.nodesInflow[adjacentNodesToAdjacentPipes[j].adjacentNodes[1]];
+                    float JRozbiory = dataVersion.nodesRozbiory[adjacentNodesToAdjacentPipes[j].adjacentNodes[1]];
 
                     int debugIIndexValue = adjacentNodesToAdjacentPipes[i].adjacentNodes[1];
                     int debugJIndexValue = adjacentNodesToAdjacentPipes[j].adjacentNodes[1];
@@ -156,23 +164,23 @@ public class CalculationManager : MonoBehaviour
                     {
                         if(IDoplyw > 0 && JDoplyw > 0)
                         {
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = IRozbiory - IDoplyw + pipesRozbiory[uncalculatedPipeIndexes[i]];
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = JRozbiory - JDoplyw + pipesRozbiory[uncalculatedPipeIndexes[j]];
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = IRozbiory - IDoplyw + dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]];
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = JRozbiory - JDoplyw + dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]];
                         }
                         else if (IDoplyw > 0 && JDoplyw == 0)
                         {
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = IRozbiory - IDoplyw + pipesRozbiory[uncalculatedPipeIndexes[i]];
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex] - (IRozbiory - IDoplyw + pipesRozbiory[uncalculatedPipeIndexes[i]]);
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = IRozbiory - IDoplyw + dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]];
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex] - (IRozbiory - IDoplyw + dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]]);
                         }
                         else if (IDoplyw == 0 && JDoplyw > 0)
                         {
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = nodesOutflow[nodeIndex] - (JRozbiory - JDoplyw + pipesRozbiory[uncalculatedPipeIndexes[j]]);
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = JRozbiory - JDoplyw + pipesRozbiory[uncalculatedPipeIndexes[j]];
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = dataVersion.nodesOutflow[nodeIndex] - (JRozbiory - JDoplyw + dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]]);
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = JRozbiory - JDoplyw + dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]];
                         }
                         else if (IDoplyw == 0 && JDoplyw == 0)
                         {
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = nodesOutflow[nodeIndex] / uncalculatedPipeIndexes.Count;
-                            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex] / uncalculatedPipeIndexes.Count;
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = dataVersion.nodesOutflow[nodeIndex] / uncalculatedPipeIndexes.Count;
+                            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex] / uncalculatedPipeIndexes.Count;
                         }
                     }
                     else if (IOdplyw > 0 && JOdplyw == 0)
@@ -200,11 +208,11 @@ public class CalculationManager : MonoBehaviour
             }
             else if (uncalculatedPipeIndexes.Count == 1)
             {
-                if (nodesInflow[nodeIndex] == nodesRozbiory[nodeIndex])
+                if (dataVersion.nodesInflow[nodeIndex] == dataVersion.nodesRozbiory[nodeIndex])
                     return;
 
                 Debug.Log($"less than 2 unculculated pipes, case B pipeindex: {uncalculatedPipeIndexes[i]} nodeindex: {nodeIndex}");
-                doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = nodesOutflow[nodeIndex];
+                dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][0] = dataVersion.nodesOutflow[nodeIndex];
                 StuffToDoAfterCalculatingPipe(i, nodeIndex, uncalculatedPipeIndexes);
             }
             else
@@ -215,32 +223,32 @@ public class CalculationManager : MonoBehaviour
     }
     void CalculateOutflowOnNodeWhileAdjacentNodesAreFullOfWater(int nodeIndex, List<int> uncalculatedPipeIndexes, int i, int j)
     {
-        if (pipesInflows[uncalculatedPipeIndexes[i]] == pipesRozbiory[uncalculatedPipeIndexes[i]] && pipesInflows[uncalculatedPipeIndexes[j]] == pipesRozbiory[uncalculatedPipeIndexes[j]])
+        if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] == dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]] && dataVersion.pipesInflows[uncalculatedPipeIndexes[j]] == dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]])
         {
             Debug.Log($"case Ada");
         }
-        else if (pipesInflows[uncalculatedPipeIndexes[i]] < pipesRozbiory[uncalculatedPipeIndexes[i]] && pipesInflows[uncalculatedPipeIndexes[j]] == pipesRozbiory[uncalculatedPipeIndexes[j]])
+        else if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]] && dataVersion.pipesInflows[uncalculatedPipeIndexes[j]] == dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]])
         {
             Debug.Log($"case Adb");
-            doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = nodesOutflow[nodeIndex];
+            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = dataVersion.nodesOutflow[nodeIndex];
 
         }
-        else if (pipesInflows[uncalculatedPipeIndexes[i]] == pipesRozbiory[uncalculatedPipeIndexes[i]] && pipesInflows[uncalculatedPipeIndexes[j]] < pipesRozbiory[uncalculatedPipeIndexes[j]])
+        else if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] == dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]] && dataVersion.pipesInflows[uncalculatedPipeIndexes[j]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]])
         {
             Debug.Log($"case Adc");
-            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex];
-            AddUpInFlows(uncalculatedPipeIndexes[j]);
+            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex];
+            AddupInflows(dataVersion, uncalculatedPipeIndexes[j]);
 
-            if (pipesInflows[uncalculatedPipeIndexes[j]] < pipesRozbiory[uncalculatedPipeIndexes[j]])
+            if (dataVersion.pipesInflows[uncalculatedPipeIndexes[j]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]])
             {
-                doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][1] = pipesRozbiory[uncalculatedPipeIndexes[j]] - doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][1];
+                dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][1] = dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]] - dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][1];
             }
         }
-        else if (pipesInflows[uncalculatedPipeIndexes[i]] < pipesRozbiory[uncalculatedPipeIndexes[i]] && pipesInflows[uncalculatedPipeIndexes[j]] < pipesRozbiory[uncalculatedPipeIndexes[j]])
+        else if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]] && dataVersion.pipesInflows[uncalculatedPipeIndexes[j]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]])
         {
             Debug.Log($"case Add");
-            doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = nodesOutflow[nodeIndex];
-            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][1] = nodesOutflow[nodeIndex];
+            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = dataVersion.nodesOutflow[nodeIndex];
+            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][1] = dataVersion.nodesOutflow[nodeIndex];
         }
         else
         {
@@ -252,18 +260,18 @@ public class CalculationManager : MonoBehaviour
     void CalculateOutflowOnNode(int nodeIndex)
     {
         //tworzy liste z indexami pobliskich rur
-        List<int> adjacentPipesIndexes = _nodeAndAdjacentPipes[nodeIndex];
+        List<int> adjacentPipesIndexes = dataVersion._nodeAndAdjacentPipes[nodeIndex];
         List<int> emptyPipeIndexes = new List<int>();
         List<int> fullPipeIndexes = new List<int>();
 
         for (int i = 0; i < adjacentPipesIndexes.Count; i++)
         {
-            Debug.Log($"adjacent pipe index: {adjacentPipesIndexes[i]}, outflow: {pipesOutflows[adjacentPipesIndexes[i]]})");
-            if (pipesOutflows[adjacentPipesIndexes[i]] > 0 && nodesOutflow[nodeIndex] > 0)
+            Debug.Log($"adjacent pipe index: {adjacentPipesIndexes[i]}, outflow: {dataVersion.pipesOutflows[adjacentPipesIndexes[i]]})");
+            if (dataVersion.pipesOutflows[adjacentPipesIndexes[i]] > 0 && dataVersion.nodesOutflow[nodeIndex] > 0)
             {
                 Debug.Log($"calculated node index: {nodeIndex}, pipeindex: {adjacentPipesIndexes[i]}");
             }
-            else if (pipesOutflows[adjacentPipesIndexes[i]] > 0)
+            else if (dataVersion.pipesOutflows[adjacentPipesIndexes[i]] > 0)
             {
                 fullPipeIndexes.Add(adjacentPipesIndexes[i]);
             }
@@ -275,15 +283,15 @@ public class CalculationManager : MonoBehaviour
 
         for (int i = 0; i < fullPipeIndexes.Count; i++)
         {
-            Debug.Log($"pipe {fullPipeIndexes[i]} outflow {pipesOutflows[fullPipeIndexes[i]]}");
-            nodesInflow[nodeIndex] += pipesOutflows[fullPipeIndexes[i]];
+            Debug.Log($"pipe {fullPipeIndexes[i]} outflow {dataVersion.pipesOutflows[fullPipeIndexes[i]]}");
+            dataVersion.nodesInflow[nodeIndex] += dataVersion.pipesOutflows[fullPipeIndexes[i]];
         }
 
-        Debug.Log($" node {nodeIndex} inflow {nodesInflow[nodeIndex]} and rozbior {nodesRozbiory[nodeIndex]}");
+        Debug.Log($" node {nodeIndex} inflow {dataVersion.nodesInflow[nodeIndex]} and rozbior {dataVersion.nodesRozbiory[nodeIndex]}");
 
-        if (nodesInflow[nodeIndex] > nodesRozbiory[nodeIndex])
+        if (dataVersion.nodesInflow[nodeIndex] > dataVersion.nodesRozbiory[nodeIndex])
         {
-            nodesOutflow[nodeIndex] = nodesInflow[nodeIndex] - nodesRozbiory[nodeIndex];
+            dataVersion.nodesOutflow[nodeIndex] = dataVersion.nodesInflow[nodeIndex] - dataVersion.nodesRozbiory[nodeIndex];
         }
         else
         {
@@ -295,7 +303,7 @@ public class CalculationManager : MonoBehaviour
     void StuffToDoAfterCalculatingPipe(int pipeIndex, int nodeIndex, List<int> uncalculatedPipeIndexes)
     {
         /*
-        if (nodesOutflow[nodeIndex] > nodesOutflow[ReturnAdjacentNode(uncalculatedPipeIndexes[pipeIndex], nodeIndex)])
+        if (dataVersion.nodesOutflow[nodeIndex] > dataVersion.nodesOutflow[ReturnAdjacentNode(uncalculatedPipeIndexes[pipeIndex], nodeIndex)])
         {
             KierunekPrzeplywu(uncalculatedPipeIndexes[pipeIndex], true);
             Debug.Log("true");
@@ -307,7 +315,7 @@ public class CalculationManager : MonoBehaviour
         }
         */
         KierunekPrzeplywu(uncalculatedPipeIndexes[pipeIndex], true);
-        AddUpInFlows(uncalculatedPipeIndexes[pipeIndex]);
+        AddupInflows(dataVersion, uncalculatedPipeIndexes[pipeIndex]);
     }
 
     void PorownanieDwochRur(bool znak, int _i, int _j, List<int> uncalculatedPipeIndexes, int nodeIndex)
@@ -325,30 +333,28 @@ public class CalculationManager : MonoBehaviour
             i = _j;
         }
 
-        if (pipesInflows[uncalculatedPipeIndexes[i]] > pipesRozbiory[uncalculatedPipeIndexes[i]])
+        if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] > dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]])
         {
-            CalculateOutflowOnPipe(uncalculatedPipeIndexes[i]);
-            nodesInflow[nodeIndex] += pipesOutflows[uncalculatedPipeIndexes[i]];
-            nodesOutflow[nodeIndex] += pipesOutflows[uncalculatedPipeIndexes[i]];
-            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex];
+            dataVersion.nodesInflow[nodeIndex] += CalculateOutflowOnPipe(dataVersion, uncalculatedPipeIndexes[i]);
+            dataVersion.nodesOutflow[nodeIndex] += CalculateOutflowOnPipe(dataVersion, uncalculatedPipeIndexes[i]);
+            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex];
         }
-        else if (pipesInflows[uncalculatedPipeIndexes[i]] == pipesRozbiory[uncalculatedPipeIndexes[i]])
+        else if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] == dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]])
         {
-            CalculateOutflowOnPipe(uncalculatedPipeIndexes[i]);
-            doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex];
+            CalculateOutflowOnPipe(dataVersion, uncalculatedPipeIndexes[i]);
+            dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex];
         }
-        else if (pipesInflows[uncalculatedPipeIndexes[i]] < pipesRozbiory[uncalculatedPipeIndexes[i]])
+        else if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]])
         {
-            CalculateOutflowOnPipe(uncalculatedPipeIndexes[i]);
-            if (pipesOutflows[uncalculatedPipeIndexes[i]] == 0)
+            if (CalculateOutflowOnPipe(dataVersion, uncalculatedPipeIndexes[i]) == 0)
             {
-                doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = (pipesRozbiory[uncalculatedPipeIndexes[i]] - pipesInflows[uncalculatedPipeIndexes[i]]);
-                doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex] - doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1];
+                dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = (dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]] - dataVersion.pipesInflows[uncalculatedPipeIndexes[i]]);
+                dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex] - dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1];
             }
             else
             {
-                doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = -1 * (pipesOutflows[uncalculatedPipeIndexes[i]] - pipesInflows[uncalculatedPipeIndexes[i]]);
-                doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = nodesOutflow[nodeIndex] - doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1];
+                dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = -1 * (dataVersion.pipesOutflows[uncalculatedPipeIndexes[i]] - dataVersion.pipesInflows[uncalculatedPipeIndexes[i]]);
+                dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[j]][0] = dataVersion.nodesOutflow[nodeIndex] - dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1];
             }
 
             //mozna dodac case gdy za malo wody odplywa z wezla i nie wypelni?
@@ -358,20 +364,21 @@ public class CalculationManager : MonoBehaviour
             Debug.Log($"porownaniedwochrur else puste");
         }
     }
-    void CalculateOutflowOnPipe(int pipeIndex)
+    public static float CalculateOutflowOnPipe(DataVersion data, int pipeIndex)
     {
-        pipesOutflows[pipeIndex] = pipesInflows[pipeIndex] - pipesRozbiory[pipeIndex];
-        if (pipesOutflows[pipeIndex] < 0)
+        data.pipesOutflows[pipeIndex] = data.pipesInflows[pipeIndex] - data.pipesRozbiory[pipeIndex];
+        if (data.pipesOutflows[pipeIndex] < 0)
         {
-            pipesOutflows[pipeIndex] = 0;
+            data.pipesOutflows[pipeIndex] = 0;
         }
-        //Debug.Log(pipesOutflows[pipeIndex]);
+        //Debug.Log(dataVersion.pipesOutflows[pipeIndex]);
+        return data.pipesOutflows[pipeIndex];
     }
 
     //inputs pipeindex for search of adjacent nodes, and nodeindex to be avoided
     int ReturnAdjacentNode(int pipeIndex, int nodeIndex)
     {
-        List<int> adjacentNodes = _pipesAdjacentNodes[pipeIndex];
+        List<int> adjacentNodes = dataVersion._pipesAdjacentNodes[pipeIndex];
         //drugi wezel poza nodeIndex
         int secondNodeIndex = -1;
 
@@ -387,15 +394,16 @@ public class CalculationManager : MonoBehaviour
         Debug.Log($" funkcja ReturnAdjacentNode nie znalazla szukanego wezla. index = {secondNodeIndex}");
         return secondNodeIndex;
     }
-    public void AddUpInFlows(int pipeIndex)
+    public static float[] AddupInflows(DataVersion data, int pipeIndex)
     {
-        pipesInflows[pipeIndex] = doubleInflowsOnPipes[pipeIndex][0] + doubleInflowsOnPipes[pipeIndex][1];
-        Debug.Log("wartosc z sumowania wplywow " + pipesInflows[pipeIndex]);
-        Debug.Log("wartosc z sumowania wplywow 1 " + doubleInflowsOnPipes[pipeIndex][0]);
-        Debug.Log("wartosc z sumowania wplywow 2 " + doubleInflowsOnPipes[pipeIndex][1]);
+        data.pipesInflows[pipeIndex] = data.doubleInflowsOnPipes[pipeIndex][0] + data.doubleInflowsOnPipes[pipeIndex][1];
+        Debug.Log("wartosc z sumowania wplywow " + data.pipesInflows[pipeIndex]);
+        Debug.Log("wartosc z sumowania wplywow 1 " + data.doubleInflowsOnPipes[pipeIndex][0]);
+        Debug.Log("wartosc z sumowania wplywow 2 " + data.doubleInflowsOnPipes[pipeIndex][1]);
+        return data.pipesInflows;
     }
     void KierunekPrzeplywu(int pipeIndex, bool kierunekPrzeplyw)
     {
-        kierunekPrzeplywu[pipeIndex] = kierunekPrzeplyw;
+        dataVersion.kierunekPrzeplywu[pipeIndex] = kierunekPrzeplyw;
     }
 }

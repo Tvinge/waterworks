@@ -11,7 +11,6 @@ public class UIManager : MonoBehaviour
 {
     public Action updateDataset;
 
-
     [SerializeField] GameObject wodociag;
     [SerializeField] AppLogic appLogic;
     [SerializeField] DataLoader dataLoader;
@@ -19,20 +18,14 @@ public class UIManager : MonoBehaviour
     [SerializeField] TMP_Dropdown dropdown;
     [SerializeField] TMP_Text updatedInfo;
 
-    //Rozbior
     [SerializeField] TMP_Text[] rozbioryNaOdcinkachText;
     [SerializeField] TMP_Text[] rozbioryNaWezlachText;
-    //Zasilanie
     [SerializeField] TMP_Text zasilanieZPompowniText;
     [SerializeField] TMP_Text zasilanieZeZbiornikaText;
-    //doubleInflowsOnPipes 
     [SerializeField] TMP_Text[] wplywyNaOdcinkachText;
     [SerializeField] TMP_Text[] wplywyNaWezlachText;
-    //odplyw
     [SerializeField] TMP_Text[] odplywyNaOdcinkachText;
     [SerializeField] TMP_Text[] odplywyNaWezlachText;
-
-
 
     [SerializeField] Transform dzieckoZero;
     [SerializeField] Transform dzieckoOne;
@@ -41,10 +34,7 @@ public class UIManager : MonoBehaviour
 
     private DataVersion previousDataVersion;
 
-
     List<string> dropdownMenuOptions = new List<string>();
-
-
 
     private void Awake()
     {
@@ -63,52 +53,22 @@ public class UIManager : MonoBehaviour
         dropdown.ClearOptions();
         dropdown.AddOptions(dropdownMenuOptions);
     }
+
     public void HandleDropDownInputData(int DatasetIndex)
     {
         appLogic.updateDataVersion?.Invoke(dataLoader.ConvertDatasetToDataVersion(DatasetIndex));
     }
 
-
-
-
-
     void OnDataUpdated(DataVersion d)
     {
         Debug.Log("dataevent in UImanager");
-        DataVersion finalD = PopulateDataOnUpdate(d);
-        PrzypiszWartosciRozbiorow(finalD.nodesRozbiory, finalD.pipesRozbiory);
-        UpdateOutflowsOnNodes(finalD.nodesOutflow);
-        UpdatePipesOutflow(finalD.pipesOutflows, finalD.kierunekPrzeplywu);
-        UpdateInflowValues(finalD.pipesOutflows, finalD.pipesInflows, finalD.doubleInflowsOnPipes, finalD.kierunekPrzeplywu);
+        PrzypiszWartosciRozbiorow(d.nodesRozbiory, d.pipesRozbiory);
+        UpdateOutflowsOnNodes(d.nodesOutflow);
+        UpdatePipesOutflow(d.pipesOutflows, d.kierunekPrzeplywu);
+        UpdateInflowValues(d.pipesOutflows, d.pipesInflows, d.doubleInflowsOnPipes, d.kierunekPrzeplywu);
 
-        previousDataVersion = finalD;
+        previousDataVersion = d;
     }
-
-    DataVersion PopulateDataOnUpdate(DataVersion d)
-    {
-        
-        float[] nodesRozbiory = d.nodesRozbiory;
-        float[] nodesOutflow = d.nodesOutflow;
-        float[] pipesRozbiory = d.pipesRozbiory;//
-        bool[] kierunekPrzeplywu = d.kierunekPrzeplywu;
-        float[] pipesOutflows = d.pipesOutflows;
-        float[] pipesInflows = d.pipesInflows;
-        float[][] doubleInflowsOnPipes = d.doubleInflowsOnPipes;
-        
-        /*
-    public float[] nodesInflow { get; set; }
-    public float[] pipesInflows { get; set; }
-
-    public Dictionary<int, List<int>> _nodeAndAdjacentPipes;
-
-    public Dictionary<int, List<int>> _pipesAdjacentNodes;
-        */
-
-
-        return d;
-    }
-
-
 
     void AssignChildTransform(int Index)
     {
