@@ -8,38 +8,87 @@ namespace Tests
 {
     public class CalculationTestsForDefaultData : MonoBehaviour
     {
-        CalculationManager calculationManager;
-        
+        DataVersion data;
+        [SetUp] 
+        public void Setup()
+        {
+            data = DataVersion.CreateDefault();
+
+            Assert.That(data, Is.Not.Null);
+
+            Assert.That(data.zasilanieZPompowni, Is.Not.Null);
+            Assert.That(data.zasilanieZeZbiornika, Is.Not.Null);
+            Assert.That(data.wspolczynnik, Is.Not.Null);
+            Assert.That(data.nodesRozbiory, Is.Not.Null);
+            Assert.That(data.nodesInflows, Is.Not.Null);
+            Assert.That(data.nodesOutflows, Is.Not.Null);
+            Assert.That(data.polozenieWezlow, Is.Not.Null);
+            Assert.That(data.pipesRozbiory, Is.Not.Null);
+            Assert.That(data.kierunekPrzeplywu, Is.Not.Null);
+            Assert.That(data.pipesOutflows, Is.Not.Null);
+            Assert.That(data.pipesInflows, Is.Not.Null);
+            Assert.That(data.dlugoscOdcinka, Is.Not.Null);
+
+            Assert.That(data.doubleInflowsOnPipes, Is.Not.Null);
+            Assert.That(data._nodeAndAdjacentPipes, Is.Not.Null);
+            Assert.That(data._pipesAdjacentNodes, Is.Not.Null);
+            Assert.That(data.pipesPositions, Is.Not.Null);
+            Assert.That(data.nodesPositions, Is.Not.Null);
+            Assert.That(data.kierunekRuchuWskazowekZegara, Is.Not.Null);
+
+        }
+
+        #region AppLogicTests
         [Test]
         public void calculateQhmax()
         {
-            //IDataVersion defaultVersion = Substitute.For<IDataVersion>();
-            DataVersion realDefaultVersion = DataVersion.CreateDefault();
-            //defaultVersion.nodesRozbiory.Returns(realDefaultVersion.nodesRozbiory);
-            //defaultVersion.pipesRozbiory.Returns(realDefaultVersion.pipesRozbiory);
-
-            float value = AppLogic.CalculateQhmax(realDefaultVersion);
+            decimal value = AppLogic.CalculateQhmax(data);
             Assert.AreEqual(expected: 282, actual: value);
         }
 
         [Test]
         public void calculateQzbiornika()
         {
-            DataVersion realDefaultVersion = DataVersion.CreateDefault();
 
-            float value = AppLogic.CalculateQzbiornika(realDefaultVersion);
+            decimal value = AppLogic.CalculateQzbiornika(data);
 
             Assert.AreEqual(expected: 94, actual: value);
         }
+        #endregion
+
+        #region CalculationManagerTests
+
+        [Test]
+        public void SetOutflowOnNodeWithTwoUncalculatedPipes()
+        {
+            int i = 0;
+            int nodeIndex = 3;
+            decimal IOdplyw = 100;
+            List<int> pipes = new List<int> { 3,7};
+            List<(int pipeIndex, int[] adjacentNodes)> adjacentNodesToAdjacentPipes = new List<(int pipeIndex, int[] adjacentNodes)>
+            {
+                (3, new int[] { 3, 4 }),
+                (7, new int[] { 3, 5 })
+            };
+            decimal[][] result = CalculationManager.SetOutflowOnNodeWithTwoUncalculatedPipes(data, i, nodeIndex, IOdplyw, pipes, adjacentNodesToAdjacentPipes);
+
+        }
+
+        [Test]
+        public void PorownanieRurr()
+        {
+
+        }
+
 
         [Test]
         public void calculateOutflowOnPipe()
         {
-            DataVersion realDefaultVersion = DataVersion.CreateDefault();
-            int pipeId = 0;
-            realDefaultVersion.pipesInflows[pipeId] = 188;
 
-            float value = CalculationManager.CalculateOutflowOnPipe(realDefaultVersion, pipeId);
+            int pipeId = 0;
+            data.pipesInflows[pipeId] = 188;
+
+            decimal value = CalculationManager.CalculateOutflowOnPipe(data, pipeId);
 
             Assert.AreEqual(expected: 188, actual: value);
         }
@@ -47,17 +96,34 @@ namespace Tests
         [Test]
         public void addupInflows()
         {
-            DataVersion realDefaultVersion = DataVersion.CreateDefault();
+
             int pipeIndex = 0;
-            realDefaultVersion.doubleInflowsOnPipes[pipeIndex][0] = 100;
-            realDefaultVersion.doubleInflowsOnPipes[pipeIndex][1] = 100;
+            data.doubleInflowsOnPipes[pipeIndex][0] = 100;
+            data.doubleInflowsOnPipes[pipeIndex][1] = 100;
 
-            float[] expectedValues = new float[9];
-            expectedValues[pipeIndex] = realDefaultVersion.doubleInflowsOnPipes[pipeIndex][0] + realDefaultVersion.doubleInflowsOnPipes[pipeIndex][1];
+            decimal[] expectedValues = new decimal[9];
+            expectedValues[pipeIndex] = data.doubleInflowsOnPipes[pipeIndex][0] + data.doubleInflowsOnPipes[pipeIndex][1];
 
-            float[] values = CalculationManager.AddupInflows(realDefaultVersion, pipeIndex);
+            decimal values = CalculationManager.AddupInflows(data, pipeIndex);
 
             Assert.AreEqual(expected: expectedValues, actual: values);
+        }
+
+
+        #endregion
+
+
+        [Test]
+        public void UpdateUI_ShouldUpdateRozbiory_AfterUpdateData()
+        {
+
+        }
+
+
+        [Test]
+        public void ResetData_ShouldResetData()
+        {
+            
         }
 
 
@@ -65,7 +131,54 @@ namespace Tests
 
 
 
+
+
+
+
+
+
+
+
+        // 1st level is/has/dopes/contains
+        // 2nd level all/not/some/exactly
+        // or/and/not
+        // Is.Unique / Is.Ordered
+        // Assert.IsTrue
+
+        [Test]
+        public void Testee()
+        {
+            string username = "User123";
+            Assert.That(username, Does.StartWith("U"));
+            Assert.That(username, Does.EndWith("3"));
+
+            var list = new List<int> { 1, 2, 3, 4, 5 };
+            Assert.That(list, Contains.Item(3));
+            Assert.That(list, Is.All.Positive);
+            Assert.That(list, Has.Exactly(expectedCount: 2).LessThan(3));
+            Assert.That(list, Is.Ordered);
+            Assert.That(list, Is.Unique);
+            Assert.That(list, Has.Exactly(expectedCount: 3).Matches<int>(x => x % 2 != 0));
+
+        }
+
+
     }
 
+
+
+
+
+    public static class NumberPredicates
+    {
+        public static bool IsEven(int number)
+        {
+            return number % 2 == 0;
+        }
+        public static bool IsOdd(int number)
+        {
+            return number % 2 != 0;
+        }
+    }
 }
 

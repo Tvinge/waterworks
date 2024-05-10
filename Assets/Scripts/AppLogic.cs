@@ -34,11 +34,11 @@ public class AppLogic : MonoBehaviour
         CalculateQzbiornika(defaultDataVersion);
         ZasilanieZPompowniZbiornika();
         WplywNaOdcinkachZPompowniZbiornika();
-        Blabla();
+        FindNearbyUIElements();
 
         for (int i = 0; i < defaultDataVersion.polozenieWezlow.Length; i++)
         {
-            if (defaultDataVersion.nodesOutflow[i] > 0)
+            if (defaultDataVersion.nodesOutflows[i] > 0)
             {
                 nodesWithOutflowsOnStart.Add(i);
             }
@@ -57,7 +57,6 @@ public class AppLogic : MonoBehaviour
             {
                 Debug.Log("**********************************ITERATION***********************************");
                 startIteration?.Invoke();
-                //UpdateDataVersion();
                 updateDataVersion?.Invoke(defaultDataVersion);
             }
         }
@@ -67,7 +66,7 @@ public class AppLogic : MonoBehaviour
         }
     }
 
-    void Blabla()
+    void FindNearbyUIElements()
     {
         defaultDataVersion._nodeAndAdjacentPipes.Clear();
         defaultDataVersion._pipesAdjacentNodes.Clear();
@@ -104,56 +103,53 @@ public class AppLogic : MonoBehaviour
     }
 
     #region
-    public static float CalculateQzbiornika(DataVersion data)
+    public static decimal CalculateQzbiornika(DataVersion data)
     {
-
         data.zasilanieZeZbiornika = CalculateQhmax(data) - data.zasilanieZPompowni;
         return data.zasilanieZeZbiornika;
     }
 
-    public static float CalculateQhmax(DataVersion data)
+    public static decimal CalculateQhmax(DataVersion data)
     {
+        decimal value = 0;
 
-        float value = 0;
-
-        foreach (float i in data.pipesRozbiory)
+        foreach (decimal i in data.pipesRozbiory)
         {
             value += i;
         }
 
-        foreach (float i in data.nodesRozbiory)
+        foreach (decimal i in data.nodesRozbiory)
         {
             value += i;
         }
-
         return value;
     }
 
-    float[] ZasilanieZPompowniZbiornika()
+    decimal[] ZasilanieZPompowniZbiornika()
     {
         int p = 0;
         int zPipe = defaultDataVersion.dlugoscOdcinka.Length - 1;
         int zNode = defaultDataVersion.polozenieWezlow.Length - 1;
 
-        defaultDataVersion.nodesOutflow[p] = defaultDataVersion.zasilanieZPompowni;
+        defaultDataVersion.nodesOutflows[p] = defaultDataVersion.zasilanieZPompowni;
         KierunekPrzeplywu(p, true);
 
-        defaultDataVersion.nodesOutflow[zNode] = defaultDataVersion.zasilanieZeZbiornika;
+        defaultDataVersion.nodesOutflows[zNode] = defaultDataVersion.zasilanieZeZbiornika;
         KierunekPrzeplywu(zPipe, false);
 
-        return defaultDataVersion.nodesOutflow;
+        return defaultDataVersion.nodesOutflows;
     }
 
-    float[] WplywNaOdcinkachZPompowniZbiornika()
+    decimal[] WplywNaOdcinkachZPompowniZbiornika()
     {
         int p = 0;
         int zPipe = defaultDataVersion.dlugoscOdcinka.Length - 1;
         int zNode = defaultDataVersion.polozenieWezlow.Length - 1;
 
-        defaultDataVersion.pipesInflows[p] = defaultDataVersion.nodesOutflow[p];
+        defaultDataVersion.pipesInflows[p] = defaultDataVersion.nodesOutflows[p];
         KierunekPrzeplywu(p, true);
 
-        defaultDataVersion.pipesInflows[zPipe] = defaultDataVersion.nodesOutflow[zNode];
+        defaultDataVersion.pipesInflows[zPipe] = defaultDataVersion.nodesOutflows[zNode];
         KierunekPrzeplywu(zPipe, false);
 
         return defaultDataVersion.pipesInflows;
@@ -256,12 +252,12 @@ public class AppLogic : MonoBehaviour
         {
             if (defaultDataVersion.doubleInflowsOnPipes[i] == null)
             {
-                defaultDataVersion.doubleInflowsOnPipes[i] = new float[2];
+                defaultDataVersion.doubleInflowsOnPipes[i] = new decimal[2];
             }
         }
     }
 
-    void ResetApp()
+    public void ResetApp()
     {
         Debug.Log("////////////////////////////////////ResetSimulation///////////////////////////////////////////////");
         for (int i = 0; i < defaultDataVersion.pipesOutflows.Length; i++)
@@ -274,10 +270,10 @@ public class AppLogic : MonoBehaviour
                 defaultDataVersion.doubleInflowsOnPipes[i][j] = 0;
             }
         }
-        for (int i = 0; i < defaultDataVersion.nodesOutflow.Length; i++)
+        for (int i = 0; i < defaultDataVersion.nodesOutflows.Length; i++)
         {
-            defaultDataVersion.nodesInflow[i] = 0;
-            defaultDataVersion.nodesOutflow[i] = 0;
+            defaultDataVersion.nodesInflows[i] = 0;
+            defaultDataVersion.nodesOutflows[i] = 0;
         }
 
         resetSimulation.Invoke();

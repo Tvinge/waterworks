@@ -20,18 +20,18 @@ public class DataLoader : MonoBehaviour
     {
 
         public int dataset;
-        public float zasilanieZPompowni;
-        public float wspolczynnik;
+        public decimal zasilanieZPompowni;
+        public decimal wspolczynnik;
 
         [Header("Node")]
         public int[] nodeID;
-        public float[] nodeRozbiory;
-        public float[] nodeHeight;
+        public decimal[] nodeRozbiory;
+        public decimal[] nodeHeight;
 
         [Header("Pipe")]
         public int[] pipeID;
-        public float[] pipeRozbiory;
-        public float[] pipeLength;
+        public decimal[] pipeRozbiory;
+        public decimal[] pipeLength;
         public int[] pipeHeight;
     }
 
@@ -77,7 +77,6 @@ public class DataLoader : MonoBehaviour
 
         int rows = data.Length / columnPipeCount - 1;
 
-
         var m = myDataSetList.dataSet;
 
         for (int i = 0; i < rows; i += pipeCount)
@@ -85,20 +84,19 @@ public class DataLoader : MonoBehaviour
             if (i == 0)
             {
                 m[i].dataset = int.Parse(data[columnPipeCount * (i + 1)]);
-                m[i].zasilanieZPompowni = float.Parse(data[columnPipeCount * (i + 1) + 5]);
-                m[i].wspolczynnik = float.Parse(data[columnPipeCount * (i + 1) + 6]);
-
+                m[i].zasilanieZPompowni = decimal.Parse(data[columnPipeCount * (i + 1) + 5]);
+                m[i].wspolczynnik = decimal.Parse(data[columnPipeCount * (i + 1) + 6]);
 
                 m[i].pipeID = new int[pipeCount];
-                m[i].pipeRozbiory = new float[pipeCount];
-                m[i].pipeLength = new float[pipeCount];
+                m[i].pipeRozbiory = new decimal[pipeCount];
+                m[i].pipeLength = new decimal[pipeCount];
                 m[i].pipeHeight = new int[pipeCount];
 
                 for (int j = 0; j < pipeCount; j++)
                 {
                     m[i].pipeID[j] = int.Parse(data[columnPipeCount * (i + j + 1) + 1]);
-                    m[i].pipeRozbiory[j] = float.Parse(data[columnPipeCount * (i + j + 1) + 2]);
-                    m[i].pipeLength[j] = float.Parse(data[columnPipeCount * (i + j + 1) + 3]);
+                    m[i].pipeRozbiory[j] = decimal.Parse(data[columnPipeCount * (i + j + 1) + 2]);
+                    m[i].pipeLength[j] = decimal.Parse(data[columnPipeCount * (i + j + 1) + 3]);
                     m[i].pipeHeight[j] = int.Parse(data[columnPipeCount * (i + j + 1) + 4]);
                 }
             }
@@ -106,19 +104,19 @@ public class DataLoader : MonoBehaviour
             {
                 m[i / pipeCount] = new DataSet();
                 m[i / pipeCount].dataset = int.Parse(data[columnPipeCount * (i + 1)]);
-                m[i / pipeCount].zasilanieZPompowni = float.Parse(data[columnPipeCount * (i + 1) + 5]);
-                m[i / pipeCount].wspolczynnik = float.Parse(data[columnPipeCount * (i + 1) + 6]);
+                m[i / pipeCount].zasilanieZPompowni = decimal.Parse(data[columnPipeCount * (i + 1) + 5]);
+                m[i / pipeCount].wspolczynnik = decimal.Parse(data[columnPipeCount * (i + 1) + 6]);
 
                 m[i / pipeCount].pipeID = new int[pipeCount];
-                m[i / pipeCount].pipeRozbiory = new float[pipeCount];
-                m[i / pipeCount].pipeLength = new float[pipeCount];
+                m[i / pipeCount].pipeRozbiory = new decimal[pipeCount];
+                m[i / pipeCount].pipeLength = new decimal[pipeCount];
                 m[i / pipeCount].pipeHeight = new int[pipeCount];
 
                 for (int j = 0; j < pipeCount; j++)
                 {
                     m[i / pipeCount].pipeID[j] = int.Parse(data[columnPipeCount * (i + j + 1) + 1]);
-                    m[i / pipeCount].pipeRozbiory[j] = float.Parse(data[columnPipeCount * (i + j + 1) + 2]);
-                    m[i / pipeCount].pipeLength[j] = float.Parse(data[columnPipeCount * (i + j + 1) + 3]);
+                    m[i / pipeCount].pipeRozbiory[j] = decimal.Parse(data[columnPipeCount * (i + j + 1) + 2]);
+                    m[i / pipeCount].pipeLength[j] = decimal.Parse(data[columnPipeCount * (i + j + 1) + 3]);
                     m[i / pipeCount].pipeHeight[j] = int.Parse(data[columnPipeCount * (i + j + 1) + 4]);
                 }
             }
@@ -141,30 +139,29 @@ public class DataLoader : MonoBehaviour
                 m[i].dataset = int.Parse(data[columnNodeCount * (i + 1)]);
 
                 m[i].nodeID = new int[nodeCount];
-                m[i].nodeRozbiory = new float[nodeCount];
-                m[i].nodeHeight = new float[nodeCount];
+                m[i].nodeRozbiory = new decimal[nodeCount];
+                m[i].nodeHeight = new decimal[nodeCount];
 
                 for (int j = 0; j < nodeCount; j++)
                 {
                     m[i].nodeID[j] = int.Parse(data[columnNodeCount * (i + j + 1) + 1]);
-                    m[i].nodeRozbiory[j] = float.Parse(data[columnNodeCount * (i + j + 1) + 2]);
-                    m[i].nodeHeight[j] = float.Parse(data[columnNodeCount * (i + j + 1) + 3]);
+                    m[i].nodeRozbiory[j] = decimal.Parse(data[columnNodeCount * (i + j + 1) + 2]);
+                    m[i].nodeHeight[j] = decimal.Parse(data[columnNodeCount * (i + j + 1) + 3]);
                 }
             }
             else
             {
-                //m[i / nodeCount] = new DataSet();
                 m[i / nodeCount].dataset = int.Parse(data[columnNodeCount * (i + 1)]);
 
                 m[i / nodeCount].nodeID = new int[nodeCount];
-                m[i / nodeCount].nodeRozbiory = new float[nodeCount];
-                m[i / nodeCount].nodeHeight = new float[nodeCount];
+                m[i / nodeCount].nodeRozbiory = new decimal[nodeCount];
+                m[i / nodeCount].nodeHeight = new decimal[nodeCount];
 
                 for (int j = 0; j < nodeCount; j++)
                 {
                     m[i / nodeCount].nodeID[j] = int.Parse(data[columnNodeCount * (i + j + 1) + 1]);
-                    m[i / nodeCount].nodeRozbiory[j] = float.Parse(data[columnNodeCount * (i + j + 1) + 2]);
-                    m[i / nodeCount].nodeHeight[j] = float.Parse(data[columnNodeCount * (i + j + 1) + 3]);
+                    m[i / nodeCount].nodeRozbiory[j] = decimal.Parse(data[columnNodeCount * (i + j + 1) + 2]);
+                    m[i / nodeCount].nodeHeight[j] = decimal.Parse(data[columnNodeCount * (i + j + 1) + 3]);
                 }
             }
         }
