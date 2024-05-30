@@ -10,17 +10,17 @@ using UnityEngine;
 
 public interface IDataVersion
 {
-    public float zasilanieZPompowni { get; set; }
-    public float zasilanieZeZbiornika { get; set; }
-    public float wspolczynnik { get; set; }
-    public float[] nodesRozbiory { get; set; } 
-    public float[] nodesOutflow { get; set; } 
-    public float[] nodesInflow { get; set; } 
-    public float[] pipesRozbiory { get; set; } 
+    public decimal zasilanieZPompowni { get; set; }
+    public decimal zasilanieZeZbiornika { get; set; }
+    public decimal wspolczynnik { get; set; }
+    public decimal[] nodesRozbiory { get; set; } 
+    public decimal[] nodesOutflows { get; set; } 
+    public decimal[] nodesInflows { get; set; } 
+    public decimal[] pipesRozbiory { get; set; } 
     public bool[] kierunekPrzeplywu { get; set; } 
-    public float[] pipesOutflows { get; set; } 
-    public float[] pipesInflows { get; set; } 
-    public float[][] doubleInflowsOnPipes { get; set; } 
+    public decimal[] pipesOutflows { get; set; } 
+    public decimal[] pipesInflows { get; set; } 
+    public decimal[][] doubleInflowsOnPipes { get; set; } 
 
     public Dictionary<int, List<int>> _nodeAndAdjacentPipes { get; set; }
 
@@ -32,21 +32,21 @@ public interface IDataVersion
 
 public class DataVersion : IDataVersion
 {
-    public float zasilanieZPompowni { get; set; }
-    public float zasilanieZeZbiornika{ get; set; }
-    public float wspolczynnik { get; set; }
-    public float[] nodesRozbiory { get; set; } = new float[8];
-    public float[] nodesOutflow { get; set; } = new float[8];
-    public float[] nodesInflow { get; set; } = new float[8];
-    public float[] polozenieWezlow { get; set; } = new float[8];
-    public float[] pipesRozbiory { get; set; } = new float[9];
+    public decimal zasilanieZPompowni { get; set; }
+    public decimal zasilanieZeZbiornika{ get; set; }
+    public decimal wspolczynnik { get; set; }
+    public decimal[] nodesRozbiory { get; set; } = new decimal[8];
+    public decimal[] nodesOutflows { get; set; } = new decimal[8];
+    public decimal[] nodesInflows { get; set; } = new decimal[8];
+    public decimal[] polozenieWezlow { get; set; } = new decimal[8];
+    public decimal[] pipesRozbiory { get; set; } = new decimal[9];
     public bool[] kierunekPrzeplywu { get; set; } = new bool[9];
-    public float[] pipesOutflows { get; set; } = new float[9];
-    public float[] pipesInflows { get; set; } = new float[9];
-    public float[] dlugoscOdcinka { get; set; } = new float[9];
-    public float[] wysokoscZabudowy { get; set; } = new float[9];
+    public decimal[] pipesOutflows { get; set; } = new decimal[9];
+    public decimal[] pipesInflows { get; set; } = new decimal[9];
+    public decimal[] dlugoscOdcinka { get; set; } = new decimal[9];
+    public decimal[] wysokoscZabudowy { get; set; } = new decimal[9];
 
-    public float[][] doubleInflowsOnPipes { get; set; } // idk czemu dziala bez new...
+    public decimal[][] doubleInflowsOnPipes { get; set; } // idk czemu dziala bez new...
 
     public Dictionary<int, List<int>> _nodeAndAdjacentPipes { get; set; } = new Dictionary<int, List<int>>();
 
@@ -61,7 +61,7 @@ public class DataVersion : IDataVersion
 
     public DataVersion()//constructor
     {
-        for (int i = 0; i < nodesOutflow.Length; i++)
+        for (int i = 0; i < nodesOutflows.Length; i++)
         {
             List<int> foundPipes = new List<int>();
             _nodeAndAdjacentPipes.Add(i, foundPipes);
@@ -73,11 +73,11 @@ public class DataVersion : IDataVersion
         }
 
 
-        doubleInflowsOnPipes = new float[9][];
+        doubleInflowsOnPipes = new decimal[9][];
 
         for (int i = 0; i < doubleInflowsOnPipes.Length; i++)
         {
-            doubleInflowsOnPipes[i] = new float[] { 0, 0 };
+            doubleInflowsOnPipes[i] = new decimal[] { 0, 0 };
         }
     }
     public static DataVersion CreateDefault()
@@ -85,12 +85,12 @@ public class DataVersion : IDataVersion
         return new DataVersion
         {
             zasilanieZPompowni = 188,
-            wspolczynnik = 1.75f,
-            nodesRozbiory = new float[] { 0f, 17f, 12f, 23f, 26f, 29f, 30f, 0f },
-            pipesRozbiory = new float[] { 0f, 21f, 25f, 11f, 32f, 15f, 26f, 15f, 0f },
-            polozenieWezlow = new float[] { 145f, 147f, 146f, 151f, 154f, 159f, 168f, 192f },
-            dlugoscOdcinka = new float[] { 150f, 400f, 350f, 320f, 290f, 300f, 315f, 290f, 250f },
-            wysokoscZabudowy = new float[] { 0f, 20f, 25f, 15f, 20f, 15f, 15f, 15f, 0f },
+            wspolczynnik = 1.75m,
+            nodesRozbiory = new decimal[] { 0m, 17m, 12m, 23m, 26m, 29m, 30m, 0m },
+            pipesRozbiory = new decimal[] { 0m, 21m, 25m, 11m, 32m, 15m, 26m, 15m, 0m },
+            polozenieWezlow = new decimal[] { 145m, 147m, 146m, 151m, 154m, 159m, 168m, 192m },
+            dlugoscOdcinka = new decimal[] { 150m, 400m, 350m, 320m, 290m, 300m, 315m, 290m, 250m },
+            wysokoscZabudowy = new decimal[] { 0m, 20m, 25m, 15m, 20m, 15m, 15m, 15m, 0m },
         };
     }
 }
@@ -98,24 +98,24 @@ public class DataVersion : IDataVersion
 
 public class UIData
 {
-    public float[] nodesRozbiory { get; set; } = new float[8];
-    public float[] pipesRozbiory { get; set; } = new float[9];
-    public float[] pipesInflows { get; set; } = new float[9];
-    public float[] pipesOutflows { get; set; } = new float[9];
+    public decimal[] nodesRozbiory { get; set; } = new decimal[8];
+    public decimal[] pipesRozbiory { get; set; } = new decimal[9];
+    public decimal[] pipesInflows { get; set; } = new decimal[9];
+    public decimal[] pipesOutflows { get; set; } = new decimal[9];
     public bool[] kierunekPrzeplywu { get; set; } = new bool[9];
 
-    public float[] nodesOutflow { get; set; } = new float[8];
+    public decimal[] nodesOutflow { get; set; } = new decimal[8];
 
-    public float[][] doubleInflowsOnPipes;
+    public decimal[][] doubleInflowsOnPipes;
 
     public UIData()
     {
-        doubleInflowsOnPipes = new float[9][];
+        doubleInflowsOnPipes = new decimal[9][];
 
 
         for (int i = 0; i < doubleInflowsOnPipes.Length; i++)
         {
-            doubleInflowsOnPipes[i] = new float[] { 0, 0 };
+            doubleInflowsOnPipes[i] = new decimal[] { 0, 0 };
 
 
         }

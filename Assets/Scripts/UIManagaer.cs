@@ -63,7 +63,7 @@ public class UIManager : MonoBehaviour
     {
         Debug.Log("dataevent in UImanager");
         PrzypiszWartosciRozbiorow(d.nodesRozbiory, d.pipesRozbiory);
-        UpdateOutflowsOnNodes(d.nodesOutflow);
+        UpdateOutflowsOnNodes(d.nodesOutflows);
         UpdatePipesOutflow(d.pipesOutflows, d.kierunekPrzeplywu);
         UpdateInflowValues(d.pipesOutflows, d.pipesInflows, d.doubleInflowsOnPipes, d.kierunekPrzeplywu);
 
@@ -83,7 +83,7 @@ public class UIManager : MonoBehaviour
     }
 
     //przypisywanie wartosci wplywow na odcinkach
-    public void UpdateInflowValues(float[] pipesOutflows, float[] pipesInflows, float[][] doubleInFlowsOnPipes, bool[] kierunekPrzeplywu)
+    public void UpdateInflowValues(decimal[] pipesOutflows, decimal[] pipesInflows, decimal[][] doubleInFlowsOnPipes, bool[] kierunekPrzeplywu)
     {
         for (int pipeIndex = 0; pipeIndex < pipesOutflows.Length; pipeIndex++)
         {
@@ -124,7 +124,7 @@ public class UIManager : MonoBehaviour
     }
 
     //przypisywanie wartosci rozbiorow na odcinkach
-    public void PrzypiszWartosciRozbiorow(float[] nodesRozbiory, float[] pipesRozbiory)
+    public void PrzypiszWartosciRozbiorow(decimal[] nodesRozbiory, decimal[] pipesRozbiory)
     {
         string node = "wezelek";
         for (int i = 0; i < nodesRozbiory.Length; i++)
@@ -144,7 +144,7 @@ public class UIManager : MonoBehaviour
     }
 
     //przypisywanie wartosci odplywow na odcinkach
-    public void UpdatePipesOutflow(float[] pipesOutflows, bool[] kierunekPrzeplywu)
+    public void UpdatePipesOutflow(decimal[] pipesOutflows, bool[] kierunekPrzeplywu)
     {
         for(int i = 0; i < pipesOutflows.Length; i++)
         {
@@ -165,7 +165,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void UpdateOutflowsOnNodes(float[] nodesOutflow)
+    public void UpdateOutflowsOnNodes(decimal[] nodesOutflow)
     {
         updatedInfo.text = "rozbiory na wezlach: ";
         for (int nodeIndex = 0; nodeIndex < nodesOutflow.Length; nodeIndex++)
