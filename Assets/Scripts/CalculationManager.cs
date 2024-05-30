@@ -1,13 +1,14 @@
-using Codice.Client.Common.TreeGrouper;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using static Codice.CM.WorkspaceServer.DataStore.WkTree.WriteWorkspaceTree;
+
 
 public class CalculationManager : MonoBehaviour
 {
-    [SerializeField] AppLogic appLogic;
+    AppLogic appLogic;
+    DataLoader dataLoader = DataLoader.Instance;
     bool[] isCalculated = new bool[8];
     static bool calculations = false;
     int stepCount = 0;
@@ -17,9 +18,15 @@ public class CalculationManager : MonoBehaviour
 
     private void Awake()
     {
+        appLogic = FindObjectOfType<AppLogic>();
+        //dataLoader = FindObjectOfType<DataLoader>();
         appLogic.updateDataVersion += OnDataUpdated;
-        appLogic.startIteration += CalculateWholeIteration;
+
+
+        appLogic.calculateWaterDistribution += CalculateWholeIteration;
         appLogic.resetSimulation += ResetValues;
+
+        //StartingDiameterMethod();
     }
 
     private void ResetValues()
@@ -39,6 +46,7 @@ public class CalculationManager : MonoBehaviour
     }
 
 
+    #region FlowCalculations
     void CalculateWholeIteration()
     {
         Debug.Log("invoked event");
@@ -51,7 +59,7 @@ public class CalculationManager : MonoBehaviour
     }
     void SearchForNextNodeIndexAndCalculateIt()
     {
-        if (isCalculated[stepCount] == true && isCalculated[stepCountBackward] == true && stepCount == stepCountBackward)
+        if (isCalculated[stepCount] == true && isCalculated[stepCountBackward] == true)
             return;
 
         if (dataVersion.nodesOutflows[stepCount] > 0)
@@ -394,4 +402,10 @@ public class CalculationManager : MonoBehaviour
         dataVersion.kierunekPrzeplywu[pipeIndex] = kierunekPrzeplyw;
         return dataVersion.kierunekPrzeplywu[pipeIndex];
     }
+
+    #endregion
+
+
+
+   
 }
