@@ -1,7 +1,96 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 using UnityEngine;
+
+public interface IOptimizationEngine
+{
+    public void setEngineParameters(decimal[] coefficientsDataDiameter);
+    public void ModelPipes(RingData ringData);
+}
+public class IteratedOptimizationEngine : IOptimizationEngine
+{
+    decimal[] coefficientsDataDiameter;
+    public void setEngineParameters(decimal[] coefficientsDataDiameter)
+    {
+        this.coefficientsDataDiameter = coefficientsDataDiameter;
+    }
+
+    public void ModelPipes(RingData ringData)
+    {
+        foreach (KeyValuePair<PipeKey, Pipe> pipePair in ringData.Pipes)
+        {
+            Pipe pipe = pipePair.Value;
+            pipe.Diameter = CalculatePipeDiameter(pipe);
+            pipe.Diameter = RoundPipeDiameter(pipe);
+            pipe.Velocity = CalculatePipeVelocity(pipe);
+        }
+
+    }
+    decimal CalculatePipeDiameter(Pipe pipe)
+    {
+        decimal diameter = (decimal)Mathf.Sqrt((float)(4 * pipe.DesignFlow / 1000 / (decimal)Mathf.PI / pipe.Velocity));
+        return diameter;
+    }
+    decimal RoundPipeDiameter(Pipe pipe)
+    {
+        decimal roundedDiameter = FindClosestValue(coefficientsDataDiameter, pipe.Diameter);
+        return roundedDiameter;
+    }
+    decimal CalculatePipeVelocity(Pipe pipe)
+    {
+        decimal velocity = 4 * pipe.DesignFlow / 1000 / (decimal)(Mathf.PI) / (decimal)Mathf.Pow((float)pipe.Diameter, 2) / 1000000;
+        return velocity;
+    }
+
+    public static decimal FindClosestValue(decimal[] array, decimal x)
+    {
+        decimal closestValue = array[0];
+        decimal smallestDifference = Math.Abs(x - closestValue);
+
+        for (int i = 1; i < array.Length; i++)
+        {
+            decimal difference = Math.Abs(x - array[i]);
+            if (difference < smallestDifference)
+            {
+                smallestDifference = difference;
+                closestValue = array[i];
+            }
+        }
+        return closestValue;
+    }
+}
+
+public class GradientDescentOptimizationEngine : IOptimizationEngine
+{
+    public void setEngineParameters(decimal[] coefficientsDataDiameter)
+    {
+        throw new NotImplementedException();
+    }
+    public void ModelPipes(RingData ringData)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class OptimizationEngineFactory
+{
+    public static IOptimizationEngine CreateOptimizationEngine(string engineType)
+    {
+        switch (engineType)
+        {
+            case "Iterated":
+                return new IteratedOptimizationEngine();
+            case "GradientDescent":
+                return new GradientDescentOptimizationEngine();
+            default:
+                throw new ArgumentException("Invalid optimization engine type");
+        }
+    }
+}
+
+
 
 public class IterationManager : MonoBehaviour
 {
@@ -30,17 +119,21 @@ public class IterationManager : MonoBehaviour
     void PipeModellingHub()//later on acomodate more than 1 ring
     {
         ringData = new RingData(pipesPerRing);
-        ringData.iterations = new List<RingData.IterationData>();
+        //ringData.iterations = new List<RingData.IterationData>();
+        IOptimizationEngine calculationsEngine = OptimizationEngineFactory.CreateOptimizationEngine("Iterated");
+        calculationsEngine.setEngineParameters(coefficientsData.diameter);
+
+        calculationsEngine.ModelPipes(ringData);
 
         CalculateDesingFlow();
-        CalculateDiameter(ringData.pipeDesignFlow, ringData.pipeVelocity);
-        RoundingPipeDiameter();
+        
+        //RoundingPipeDiameter();
         CheckVelocityFlow(ringData.pipeDesignFlow, ringData.roundedPipeDiameters);
         GetCMValueFromTable();
         CalculateKValue(ringData.pipeCM, ringData.pipeLengths);
 
         //warunek iteracji dla wszystkich pierscieni!
-        {
+        { 
             iterationData = new RingData.IterationData(pipesPerRing);
             IncludeDirectionInDesignFlow();
             CalculateHeadLoses();
@@ -62,15 +155,16 @@ public class IterationManager : MonoBehaviour
         return ringData.pipeDesignFlow;
     }
 
-    decimal[] CalculateDiameter(decimal[] flow, decimal[] velocity)
+    void CalculateAndUpdateRingPipesDiameters(RingData ring)
     {
         //dm3/s => m3/s
-        for (int i = 0; i < pipesPerRing; i++)
+        foreach (KeyValuePair<PipeKey, Pipe> pipePair in ring.Pipes)
         {
-            ringData.pipeDiameters[i] = (decimal)Mathf.Sqrt((float)(4 * flow[i] / 1000 / Pi / velocity[i]));
+            Pipe pipe = pipePair.Value;
+            pipe.Diameter = CalculatePipeDiameter(pipe);
         }
-        return ringData.pipeDiameters;
     }
+
 
     decimal[] RoundingPipeDiameter()
     {
@@ -81,6 +175,7 @@ public class IterationManager : MonoBehaviour
         return ringData.roundedPipeDiameters;
     }
 
+
     decimal[] CheckVelocityFlow(decimal[] flow, decimal[] diameter)
     {
         for (int i = 0; i < pipesPerRing; i++)
@@ -90,6 +185,8 @@ public class IterationManager : MonoBehaviour
         //if (v >= 0.5m)
         return ringData.pipeVelocity;
     }
+
+    
 
     decimal[] GetCMValueFromTable()
     {
