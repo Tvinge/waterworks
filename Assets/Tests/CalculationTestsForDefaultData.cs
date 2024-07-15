@@ -21,16 +21,16 @@ namespace Tests
 
             Assert.That(data.zasilanieZPompowni, Is.Not.Null);
             Assert.That(data.zasilanieZeZbiornika, Is.Not.Null);
-            Assert.That(data.wspolczynnik, Is.Not.Null);
+            Assert.That(data.coefficient, Is.Not.Null);
             Assert.That(data.nodesRozbiory, Is.Not.Null);
             Assert.That(data.nodesInflows, Is.Not.Null);
             Assert.That(data.nodesOutflows, Is.Not.Null);
-            Assert.That(data.polozenieWezlow, Is.Not.Null);
+            Assert.That(data.nodesLocation, Is.Not.Null);
             Assert.That(data.pipesRozbiory, Is.Not.Null);
             Assert.That(data.kierunekPrzeplywu, Is.Not.Null);
             Assert.That(data.pipesOutflows, Is.Not.Null);
             Assert.That(data.pipesInflows, Is.Not.Null);
-            Assert.That(data.dlugoscOdcinka, Is.Not.Null);
+            Assert.That(data.pipeLenght, Is.Not.Null);
 
             Assert.That(data.doubleInflowsOnPipes, Is.Not.Null);
             Assert.That(data._nodeAndAdjacentPipes, Is.Not.Null);
@@ -173,7 +173,11 @@ namespace Tests
         }
 
 
+        [Test]
+        public void Check_Loaded_Data()
+        {
 
+        }
 
 
 

@@ -8,7 +8,7 @@ using UnityEngine.Events;
 public class CalculationManager : MonoBehaviour
 {
     AppLogic appLogic;
-    DataLoader dataLoader = DataLoader.Instance;
+    DataLoader dataLoader;
     bool[] isCalculated = new bool[8];
     static bool calculations = false;
     int stepCount = 0;
@@ -19,7 +19,7 @@ public class CalculationManager : MonoBehaviour
     private void Awake()
     {
         appLogic = FindObjectOfType<AppLogic>();
-        //dataLoader = FindObjectOfType<DataLoader>();
+        dataLoader = FindObjectOfType<DataLoader>();
         appLogic.updateDataVersion += OnDataUpdated;
 
 
@@ -47,15 +47,16 @@ public class CalculationManager : MonoBehaviour
 
 
     #region FlowCalculations
-    void CalculateWholeIteration()
+    public void CalculateWholeIteration()
     {
         Debug.Log("invoked event");
-        //for(int i = 0; i < 6; i++)
-        if (dataVersion != null)
+        for(int i = 0; i < 8; i++)
         {
-            SearchForNextNodeIndexAndCalculateIt();
+            if (dataVersion != null)
+            {
+                SearchForNextNodeIndexAndCalculateIt();
+            }
         }
-
     }
     void SearchForNextNodeIndexAndCalculateIt()
     {
@@ -141,7 +142,6 @@ public class CalculationManager : MonoBehaviour
         }
     }
 
-
     public static decimal[][] SetOutflowOnNodeWithTwoUncalculatedPipes(DataVersion dataVersion, int i, int nodeIndex, decimal IOdplyw, List<int> uncalculatedPipeIndexes, List<(int pipeIndex, int[] adjacentNodes)> adjacentNodesToAdjacentPipes) 
     {
         for (int j = i + 1; j < uncalculatedPipeIndexes.Count; j++)
@@ -165,7 +165,7 @@ public class CalculationManager : MonoBehaviour
                 bool znak = false;
                 PorownanieDwochRur(dataVersion, znak, i, j, nodeIndex, uncalculatedPipeIndexes);
             }
-            else if (IOdplyw > 0 && JOdplyw > 0) ///work this shit out
+            else if (IOdplyw > 0 && JOdplyw > 0) ///work this  out
             {
                 CalculateOutflowOnNodeWhileAdjacentNodesAreFullOfWater(dataVersion, nodeIndex, uncalculatedPipeIndexes, i, j);
             }
@@ -236,7 +236,6 @@ public class CalculationManager : MonoBehaviour
         {
             Debug.Log($"case Adb");
             dataVersion.doubleInflowsOnPipes[uncalculatedPipeIndexes[i]][1] = dataVersion.nodesOutflows[nodeIndex];
-
         }
         else if (dataVersion.pipesInflows[uncalculatedPipeIndexes[i]] == dataVersion.pipesRozbiory[uncalculatedPipeIndexes[i]] && dataVersion.pipesInflows[uncalculatedPipeIndexes[j]] < dataVersion.pipesRozbiory[uncalculatedPipeIndexes[j]])
         {
@@ -307,7 +306,6 @@ public class CalculationManager : MonoBehaviour
         }
         return d.nodesOutflows;
     }
-
 
     static void StuffToDoAfterCalculatingPipe(DataVersion dataVersion, int pipeIndex, int nodeIndex, List<int> uncalculatedPipeIndexes)
     {

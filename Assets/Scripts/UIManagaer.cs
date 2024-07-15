@@ -12,12 +12,14 @@ public class UIManager : MonoBehaviour
     public Action updateDataset;
 
     AppLogic appLogic;
-    DataLoader dataLoader = DataLoader.Instance;
+    DataLoader dataLoader;
 
     [SerializeField] GameObject wodociag;
     [SerializeField] TMP_Dropdown dropdown;
     [SerializeField] TMP_Text updatedInfo;
     [SerializeField] Button button;
+    [SerializeField] GameObject CalculationTableObject;
+
 
     [SerializeField] TMP_Text[] rozbioryNaOdcinkachText;
     [SerializeField] TMP_Text[] rozbioryNaWezlachText;
@@ -41,10 +43,12 @@ public class UIManager : MonoBehaviour
     private void Awake()
     {
         appLogic = FindObjectOfType<AppLogic>();
+        dataLoader = FindObjectOfType<DataLoader>();
         appLogic.updateDataVersion += OnDataUpdated;
         appLogic.resetSimulation += ResetUI;
         //appLogic.updateUIData += OnDataUpdated;
         previousDataVersion = default(DataVersion);
+
 
     }
 
@@ -88,7 +92,7 @@ public class UIManager : MonoBehaviour
             dropdown.ClearOptions();
             dropdown.AddOptions(dropdownMenuOptions);
         }
-
+        ResetUI();
         Debug.Log("dataevent in UImanager");
         PrzypiszWartosciRozbiorow(d.nodesRozbiory, d.pipesRozbiory);
         UpdateOutflowsOnNodes(d.nodesOutflows);
@@ -201,4 +205,19 @@ public class UIManager : MonoBehaviour
             updatedInfo.text = updatedInfo.text + $"\nOdplyw z wezla {nodeIndex}:  {nodesOutflow[nodeIndex].ToString("f2")}";
         }
     }
+
+    public void OpenCalculationTable()
+    {
+        bool isActive = CalculationTableObject.activeSelf;
+
+        if (isActive == true)
+        {
+            CalculationTableObject.SetActive(false);
+        }
+        else
+        {
+            CalculationTableObject.SetActive(true);
+        }
+    }
+
 }

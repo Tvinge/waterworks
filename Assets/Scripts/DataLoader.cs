@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class DataLoader
+public class DataLoader : MonoBehaviour
 {
+    /*
     // Static variable that holds the single instance of the class
     private static DataLoader instance;
     // Private constructor prevents instantiation from other classes
@@ -21,7 +22,7 @@ public class DataLoader
             return instance;
         }
     }
-
+    */
     public Action<CoefficientsData> updateCoefficientData;
 
     public int setsOfData = 16;
@@ -49,6 +50,7 @@ public class DataLoader
         public decimal[] opornoscC;
         public decimal[] przeplywnoscM;
     }
+
     [System.Serializable]
     public class CoefficientsList
     {
@@ -63,7 +65,7 @@ public class DataLoader
 
         public int dataset;
         public decimal zasilanieZPompowni;
-        public decimal wspolczynnik;
+        public decimal coefficient;
 
         [Header("Node")]
         public int[] nodeID;
@@ -119,11 +121,11 @@ public class DataLoader
         dataSet = myDataSetList.dataSet[DataVersionIndex];
         
         dataVersion.zasilanieZPompowni = dataSet.zasilanieZPompowni;
-        dataVersion.wspolczynnik = dataSet.wspolczynnik;
+        dataVersion.coefficient = dataSet.coefficient;
         dataVersion.nodesRozbiory = dataSet.nodeRozbiory;
         dataVersion.pipesRozbiory = dataSet.pipeRozbiory;
-        //Debug.Log($" pipeV: {dataVersion.pipesRozbiory} node: {dataVersion.nodesRozbiory}");
-        //Debug.Log($" pipeS: {dataSet.pipeRozbiory} node: {dataSet.nodeRozbiory}");
+        dataVersion.pipeLenght = dataSet.pipeLength;
+        
         return dataVersion;
     }
 
@@ -144,7 +146,7 @@ public class DataLoader
             {
                 m[i].dataset = int.Parse(data[pipeColumns * (i + 1)]);
                 m[i].zasilanieZPompowni = decimal.Parse(data[pipeColumns * (i + 1) + 5]);
-                m[i].wspolczynnik = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
+                m[i].coefficient = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
 
                 m[i].pipeID = new int[pipeCount];
                 m[i].pipeRozbiory = new decimal[pipeCount];
@@ -164,7 +166,7 @@ public class DataLoader
                 m[i / pipeCount] = new DataSet();
                 m[i / pipeCount].dataset = int.Parse(data[pipeColumns * (i + 1)]);
                 m[i / pipeCount].zasilanieZPompowni = decimal.Parse(data[pipeColumns * (i + 1) + 5]);
-                m[i / pipeCount].wspolczynnik = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
+                m[i / pipeCount].coefficient = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
 
                 m[i / pipeCount].pipeID = new int[pipeCount];
                 m[i / pipeCount].pipeRozbiory = new decimal[pipeCount];

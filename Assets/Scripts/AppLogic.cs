@@ -38,7 +38,8 @@ public class AppLogic : MonoBehaviour
         WplywNaOdcinkachZPompowniZbiornika();
         FindNearbyUIElements();
 
-        for (int i = 0; i < defaultDataVersion.polozenieWezlow.Length; i++)
+        for (int i = 0; i < defaultDataVersion.nodesLocation
+            .Length; i++)
         {
             if (defaultDataVersion.nodesOutflows[i] > 0)
             {
@@ -46,37 +47,32 @@ public class AppLogic : MonoBehaviour
             }
         }
 
-
         //UpdateDataVersion();
         updateDataVersion?.Invoke(defaultDataVersion);
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            //if (stepCount < nodesOutflow.Length)
-            {
-                Debug.Log("**********************************ITERATION***********************************");
-                calculateWaterDistribution?.Invoke();
-                updateDataVersion?.Invoke(defaultDataVersion);
-            }
-        }
         if (Input.GetKeyDown(KeyCode.R))
         {
-            ResetApp();
+           ResetApp();
         }
     }
 
+    public void CalculateWaterDistributionButton()
+    {
+        calculateWaterDistribution?.Invoke();
+        updateDataVersion?.Invoke(defaultDataVersion);
+    }
     void FindNearbyUIElements()
     {
         defaultDataVersion._nodeAndAdjacentPipes.Clear();
         defaultDataVersion._pipesAdjacentNodes.Clear();
-        for (int i = 0; i < defaultDataVersion.polozenieWezlow.Length; i++)
+        for (int i = 0; i < defaultDataVersion.nodesLocation.Length; i++)
         {
             SearchForAdjacentPipes(i);
         }
-        for (int i = 0; i < defaultDataVersion.dlugoscOdcinka.Length; i++)
+        for (int i = 0; i < defaultDataVersion.pipeLenght.Length; i++)
         {
             SearchForAdjacentNodes(i);
         }
@@ -92,12 +88,13 @@ public class AppLogic : MonoBehaviour
 
     void OnDataUpdated(DataVersion d)
     {
-        if (d.wspolczynnik != defaultDataVersion.wspolczynnik && d.zasilanieZPompowni != defaultDataVersion.zasilanieZPompowni)
+        if (d.coefficient != defaultDataVersion.coefficient || d.zasilanieZPompowni != defaultDataVersion.zasilanieZPompowni)
         {
-            defaultDataVersion.wspolczynnik = d.wspolczynnik;
+            defaultDataVersion.coefficient = d.coefficient;
             defaultDataVersion.zasilanieZPompowni = d.zasilanieZPompowni;
             defaultDataVersion.nodesRozbiory = d.nodesRozbiory;
             defaultDataVersion.pipesRozbiory = d.pipesRozbiory;
+            defaultDataVersion.pipeLenght = d.pipeLenght;
 
             //tutaj dodac reszte zapisywanek po dodaniu kolejnych wartoœci w clasie dataversion
             Start();
@@ -130,8 +127,8 @@ public class AppLogic : MonoBehaviour
     decimal[] ZasilanieZPompowniZbiornika()
     {
         int p = 0;
-        int zPipe = defaultDataVersion.dlugoscOdcinka.Length - 1;
-        int zNode = defaultDataVersion.polozenieWezlow.Length - 1;
+        int zPipe = defaultDataVersion.pipeLenght.Length - 1;
+        int zNode = defaultDataVersion.nodesLocation.Length - 1;
 
         defaultDataVersion.nodesOutflows[p] = defaultDataVersion.zasilanieZPompowni;
         KierunekPrzeplywu(p, true);
@@ -145,8 +142,8 @@ public class AppLogic : MonoBehaviour
     decimal[] WplywNaOdcinkachZPompowniZbiornika()
     {
         int p = 0;
-        int zPipe = defaultDataVersion.dlugoscOdcinka.Length - 1;
-        int zNode = defaultDataVersion.polozenieWezlow.Length - 1;
+        int zPipe = defaultDataVersion.pipeLenght.Length - 1;
+        int zNode = defaultDataVersion.nodesLocation.Length - 1;
 
         defaultDataVersion.pipesInflows[p] = defaultDataVersion.nodesOutflows[p];
         KierunekPrzeplywu(p, true);
@@ -188,7 +185,7 @@ public class AppLogic : MonoBehaviour
 
     Vector3[] DeclarePipePositions()
     {
-        for (int i = 0; i < defaultDataVersion.dlugoscOdcinka.Length; i++)
+        for (int i = 0; i < defaultDataVersion.pipeLenght.Length; i++)
         {
             defaultDataVersion.pipesPositions[i] = GetComponent<Transform>().GetChild(0).GetChild(i).GetComponent<RectTransform>().anchoredPosition;
             //Debug.Log(pipesPositions[i]);
@@ -198,7 +195,7 @@ public class AppLogic : MonoBehaviour
 
     Vector3[] DeclareNodesPositions()
     {
-        for (int i = 0; i < defaultDataVersion.polozenieWezlow.Length; i++)
+        for (int i = 0; i < defaultDataVersion.nodesLocation.Length; i++)
         {
             defaultDataVersion.nodesPositions[i] = GetComponent<Transform>().GetChild(1).GetChild(i).GetComponent<RectTransform>().anchoredPosition;
             //Debug.Log(pipesPositions[i]);
@@ -210,7 +207,7 @@ public class AppLogic : MonoBehaviour
     {
         Vector3 nodePosition = GetComponent<Transform>().GetChild(1).GetChild(nodeIndex).GetComponent<RectTransform>().anchoredPosition;
         List<int> foundPipes = new List<int>();
-        for (int pipeIndex = 0; pipeIndex < defaultDataVersion.dlugoscOdcinka.Length; pipeIndex++)
+        for (int pipeIndex = 0; pipeIndex < defaultDataVersion.pipeLenght.Length; pipeIndex++)
         {
             float distance = Vector3.Distance(nodePosition, defaultDataVersion.pipesPositions[pipeIndex]);
             if (distance <= 60)
@@ -228,7 +225,7 @@ public class AppLogic : MonoBehaviour
     {
         Vector3 pipePosition = GetComponent<Transform>().GetChild(0).GetChild(pipeIndex).GetComponent<RectTransform>().anchoredPosition;
         List<int> foundNodes = new List<int>();
-        for (int nodeIndex = 0; nodeIndex < defaultDataVersion.polozenieWezlow.Length; nodeIndex++)
+        for (int nodeIndex = 0; nodeIndex < defaultDataVersion.nodesLocation.Length; nodeIndex++)
         {
             float distance = Vector3.Distance(pipePosition, defaultDataVersion.nodesPositions[nodeIndex]);
             //Debug.Log(distance);

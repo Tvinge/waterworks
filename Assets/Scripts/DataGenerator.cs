@@ -30,7 +30,7 @@ public class DataGenerator : MonoBehaviour
 
         dataVersion.zasilanieZPompowni = baseMultiplier * Random.Range(40, 60)/100 * nodeCount + Random.Range(0, 100);
         dataVersion.zasilanieZeZbiornika = 0;
-        dataVersion.wspolczynnik = 1 + Random.Range(0, 100)/100;
+        dataVersion.coefficient = 1 + Random.Range(0, 100)/100;
 
         int rozbiorPointsCount = dataVersion.nodesRozbiory.Length + dataVersion.pipesRozbiory.Length - 4;
         decimal[] rozbiorDistribution = GenerateRandomArray(rozbiorPointsCount, totalRozbior);
@@ -43,20 +43,22 @@ public class DataGenerator : MonoBehaviour
             dataVersion.pipesRozbiory[i] = rozbiorDistribution[i + 5];
         }
 
-        for(int i = 0; i < dataVersion.polozenieWezlow.Length; i++)
+        for(int i = 0; i < dataVersion.nodesLocation.Length; i++)
         {
-            dataVersion.polozenieWezlow[i] = Random.Range(0, 1000);
+            dataVersion.nodesLocation[i] = Random.Range(0, 1000);
         }
         for (int i = 0; i < dataVersion.wysokoscZabudowy.Length; i++)
         {
-            dataVersion.dlugoscOdcinka[i] = Random.Range(200, 900);
+            dataVersion.pipeLenght[i] = Random.Range(200, 900);
             dataVersion.wysokoscZabudowy[i] = 5 * Random.Range(1, 7);
         }
 
         dataVersion.nodesOutflows[0] = dataVersion.zasilanieZPompowni;
         dataVersion.nodesOutflows[7] = dataVersion.zasilanieZeZbiornika;
 
+        appLogic.ResetApp();
         appLogic.updateDataVersion.Invoke(dataVersion);
+
         return dataVersion;
     }
 

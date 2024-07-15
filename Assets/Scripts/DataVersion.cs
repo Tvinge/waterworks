@@ -1,5 +1,4 @@
-﻿using JetBrains.Annotations;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 /// <summary>
@@ -12,7 +11,7 @@ public interface IDataVersion
 {
     public decimal zasilanieZPompowni { get; set; }
     public decimal zasilanieZeZbiornika { get; set; }
-    public decimal wspolczynnik { get; set; }
+    public decimal coefficient { get; set; }
     public decimal[] nodesRozbiory { get; set; } 
     public decimal[] nodesOutflows { get; set; } 
     public decimal[] nodesInflows { get; set; } 
@@ -34,16 +33,16 @@ public class DataVersion : IDataVersion
 {
     public decimal zasilanieZPompowni { get; set; }
     public decimal zasilanieZeZbiornika{ get; set; }
-    public decimal wspolczynnik { get; set; }
+    public decimal coefficient { get; set; }
     public decimal[] nodesRozbiory { get; set; } = new decimal[8];
     public decimal[] nodesOutflows { get; set; } = new decimal[8];
     public decimal[] nodesInflows { get; set; } = new decimal[8];
-    public decimal[] polozenieWezlow { get; set; } = new decimal[8];
+    public decimal[] nodesLocation { get; set; } = new decimal[8];
     public decimal[] pipesRozbiory { get; set; } = new decimal[9];
     public bool[] kierunekPrzeplywu { get; set; } = new bool[9];
     public decimal[] pipesOutflows { get; set; } = new decimal[9];
     public decimal[] pipesInflows { get; set; } = new decimal[9];
-    public decimal[] dlugoscOdcinka { get; set; } = new decimal[9];
+    public decimal[] pipeLenght { get; set; } = new decimal[9];
     public decimal[] wysokoscZabudowy { get; set; } = new decimal[9];
 
     public decimal[][] doubleInflowsOnPipes { get; set; } // idk czemu dziala bez new...
@@ -85,11 +84,11 @@ public class DataVersion : IDataVersion
         return new DataVersion
         {
             zasilanieZPompowni = 188,
-            wspolczynnik = 1.75m,
+            coefficient = 1.75m,
             nodesRozbiory = new decimal[] { 0m, 17m, 12m, 23m, 26m, 29m, 30m, 0m },
             pipesRozbiory = new decimal[] { 0m, 21m, 25m, 11m, 32m, 15m, 26m, 15m, 0m },
-            polozenieWezlow = new decimal[] { 145m, 147m, 146m, 151m, 154m, 159m, 168m, 192m },
-            dlugoscOdcinka = new decimal[] { 150m, 400m, 350m, 320m, 290m, 300m, 315m, 290m, 250m },
+            nodesLocation = new decimal[] { 145m, 147m, 146m, 151m, 154m, 159m, 168m, 192m },
+            pipeLenght = new decimal[] { 150m, 400m, 350m, 320m, 290m, 300m, 315m, 290m, 250m },
             wysokoscZabudowy = new decimal[] { 0m, 20m, 25m, 15m, 20m, 15m, 15m, 15m, 0m },
         };
     }
