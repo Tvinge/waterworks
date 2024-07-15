@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using NSubstitute;
 using NUnit.Framework;
+using System;
+using System.IO;
 
 namespace Tests
 {
     public class CalculationTestsForDefaultData : MonoBehaviour
     {
         DataVersion data;
+        DataLoader dataLoader;
         [SetUp] 
         public void Setup()
         {
@@ -112,6 +115,49 @@ namespace Tests
 
         #endregion
 
+        #region DataTests
+
+        [Test]
+        public void ReadLambda()
+        {
+            TextAsset fileContents = Resources.Load<TextAsset>("lambdaCoefficient");
+
+            string[] data = fileContents.text.Split(new string[] { ";", "\n" }, StringSplitOptions.None);
+            
+            int rows = 24;
+            int columns = 11;
+            
+
+            Assert.That(data[columns * 2 + 1], Is.EqualTo(10));
+
+            //Assert.That(data, Is.Not.Null);
+            //Assert.That(data.Length, Is.EqualTo(rows * columns - 1));
+
+
+        }
+
+
+        [Test]
+        public void GenerateRandomArray()
+        {
+            decimal totalRozbior = 400;
+            int length = 13;
+            decimal[] array = DataGenerator.GenerateRandomArray(length, totalRozbior);
+            decimal finalRozbior = 0;
+
+            foreach (var item in array)
+            {
+                finalRozbior += item;
+            }
+            Assert.That(array, Is.Not.Null);
+            Assert.That(array.Length, Is.EqualTo(length));
+            Assert.That(finalRozbior, Is.EqualTo(totalRozbior));
+        }
+
+
+
+
+        #endregion
 
         [Test]
         public void UpdateUI_ShouldUpdateRozbiory_AfterUpdateData()
@@ -125,7 +171,6 @@ namespace Tests
         {
             
         }
-
 
 
 

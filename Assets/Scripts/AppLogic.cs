@@ -8,9 +8,11 @@ using System;
 public class AppLogic : MonoBehaviour
 {
     public Action<DataVersion> updateDataVersion;
-    public Action<DataVersion> updateDataSet;
-    public Action updateUIData;
-    public Action startIteration;
+    //public Action<DataVersion> updateDataSet;
+
+    //public Action updateUIData;
+    public Action calculateWaterDistribution;
+    public Action iterateWaterDistribution;
     public Action initializeDictionaries;
     public Action resetSimulation;
 
@@ -22,7 +24,7 @@ public class AppLogic : MonoBehaviour
 
     private void Awake()
     {
-        DeclareWplywyArray();
+        DeclareInflowArray();
         UstalWskazowkiZegara();
         InitializePositions();
 
@@ -56,7 +58,7 @@ public class AppLogic : MonoBehaviour
             //if (stepCount < nodesOutflow.Length)
             {
                 Debug.Log("**********************************ITERATION***********************************");
-                startIteration?.Invoke();
+                calculateWaterDistribution?.Invoke();
                 updateDataVersion?.Invoke(defaultDataVersion);
             }
         }
@@ -178,8 +180,6 @@ public class AppLogic : MonoBehaviour
         return defaultDataVersion.kierunekRuchuWskazowekZegara;
     }
 
-
-
     bool KierunekPrzeplywu(int pipeIndex, bool kierunekPrzeplyw)
     {
         defaultDataVersion.kierunekPrzeplywu[pipeIndex] = kierunekPrzeplyw;
@@ -246,7 +246,7 @@ public class AppLogic : MonoBehaviour
     #endregion
 
 
-    void DeclareWplywyArray()
+    void DeclareInflowArray()
     {
         for (int i = 0; i < 9; i++)
         {

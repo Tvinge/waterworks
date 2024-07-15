@@ -11,12 +11,13 @@ public class UIManager : MonoBehaviour
 {
     public Action updateDataset;
 
-    [SerializeField] GameObject wodociag;
-    [SerializeField] AppLogic appLogic;
-    [SerializeField] DataLoader dataLoader;
+    AppLogic appLogic;
+    DataLoader dataLoader = DataLoader.Instance;
 
+    [SerializeField] GameObject wodociag;
     [SerializeField] TMP_Dropdown dropdown;
     [SerializeField] TMP_Text updatedInfo;
+    [SerializeField] Button button;
 
     [SerializeField] TMP_Text[] rozbioryNaOdcinkachText;
     [SerializeField] TMP_Text[] rozbioryNaWezlachText;
@@ -34,11 +35,14 @@ public class UIManager : MonoBehaviour
 
     private DataVersion previousDataVersion;
 
+    List<DataVersion> choosableDataVersions = new List<DataVersion>();
     List<string> dropdownMenuOptions = new List<string>();
 
     private void Awake()
     {
+        appLogic = FindObjectOfType<AppLogic>();
         appLogic.updateDataVersion += OnDataUpdated;
+        appLogic.resetSimulation += ResetUI;
         //appLogic.updateUIData += OnDataUpdated;
         previousDataVersion = default(DataVersion);
 
@@ -54,6 +58,21 @@ public class UIManager : MonoBehaviour
         dropdown.AddOptions(dropdownMenuOptions);
     }
 
+    void ResetUI()
+    {
+        for (int i = 0; i < odplywyNaOdcinkachText.Length; i++)
+        {
+            if (odplywyNaOdcinkachText[i] != null)
+            {
+                odplywyNaOdcinkachText[i].color = Color.white;
+            }
+            if (wplywyNaOdcinkachText[i] != null)
+            {
+                wplywyNaOdcinkachText[i].color = Color.white;
+            }
+        }
+    }
+
     public void HandleDropDownInputData(int DatasetIndex)
     {
         appLogic.updateDataVersion?.Invoke(dataLoader.ConvertDatasetToDataVersion(DatasetIndex));
@@ -61,6 +80,15 @@ public class UIManager : MonoBehaviour
 
     void OnDataUpdated(DataVersion d)
     {
+        if (!choosableDataVersions.Contains(d))
+        {
+            choosableDataVersions.Add(d);
+            dropdownMenuOptions.Add("DataSet" + dropdownMenuOptions.Count + choosableDataVersions.Count);
+
+            dropdown.ClearOptions();
+            dropdown.AddOptions(dropdownMenuOptions);
+        }
+
         Debug.Log("dataevent in UImanager");
         PrzypiszWartosciRozbiorow(d.nodesRozbiory, d.pipesRozbiory);
         UpdateOutflowsOnNodes(d.nodesOutflows);
@@ -170,7 +198,7 @@ public class UIManager : MonoBehaviour
         updatedInfo.text = "rozbiory na wezlach: ";
         for (int nodeIndex = 0; nodeIndex < nodesOutflow.Length; nodeIndex++)
         {
-            updatedInfo.text = updatedInfo.text + $"\nRozbior na wezle {nodeIndex}:  {nodesOutflow[nodeIndex]}";
+            updatedInfo.text = updatedInfo.text + $"\nOdplyw z wezla {nodeIndex}:  {nodesOutflow[nodeIndex].ToString("f2")}";
         }
     }
 }
