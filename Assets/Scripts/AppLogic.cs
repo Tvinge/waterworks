@@ -25,54 +25,53 @@ public class AppLogic : MonoBehaviour
     private void Awake()
     {
         DeclareInflowArray();
-        UstalWskazowkiZegara();
+        UstalWskazowkiZegara(defaultDataVersion);
         InitializePositions();
 
         updateDataVersion += OnDataUpdated;
-
     }
     void Start()
     {
         CalculateQzbiornika(defaultDataVersion);
-        ZasilanieZPompowniZbiornika();
-        WplywNaOdcinkachZPompowniZbiornika();
-        FindNearbyUIElements();
-
-        for (int i = 0; i < defaultDataVersion.nodesLocation
-            .Length; i++)
-        {
-            if (defaultDataVersion.nodesOutflows[i] > 0)
-            {
-                nodesWithOutflowsOnStart.Add(i);
-            }
-        }
-
-        //UpdateDataVersion();
+        ZasilanieZPompowniZbiornika(defaultDataVersion);
+        InflowOnPipesFromStartingFullNodes(defaultDataVersion);
+        FindNearbyUIElements(defaultDataVersion);
+        TransferUIElementsToData(defaultDataVersion); //TODO: create data, than UI elements
+        GetNodesWithOutflowOnStart(defaultDataVersion);
         updateDataVersion?.Invoke(defaultDataVersion);
     }
-
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
-           ResetApp();
+            ResetApp();
         }
     }
 
+    void GetNodesWithOutflowOnStart(DataVersion dataVersion)
+    {
+        for (int i = 0; i < dataVersion.nodesLocation.Length; i++)
+        {
+            if (dataVersion.nodesOutflows[i] > 0)
+            {
+                nodesWithOutflowsOnStart.Add(i);
+            }
+        }
+    }
     public void CalculateWaterDistributionButton()
     {
         calculateWaterDistribution?.Invoke();
         updateDataVersion?.Invoke(defaultDataVersion);
     }
-    void FindNearbyUIElements()
+    void FindNearbyUIElements(DataVersion data)
     {
-        defaultDataVersion._nodeAndAdjacentPipes.Clear();
-        defaultDataVersion._pipesAdjacentNodes.Clear();
-        for (int i = 0; i < defaultDataVersion.nodesLocation.Length; i++)
+        data._nodeAndAdjacentPipes.Clear();
+        data._pipesAdjacentNodes.Clear();
+        for (int i = 0; i < data.nodesLocation.Length; i++)
         {
             SearchForAdjacentPipes(i);
         }
-        for (int i = 0; i < defaultDataVersion.pipeLenght.Length; i++)
+        for (int i = 0; i < data.pipeLenght.Length; i++)
         {
             SearchForAdjacentNodes(i);
         }
@@ -90,6 +89,7 @@ public class AppLogic : MonoBehaviour
     {
         if (d.coefficient != defaultDataVersion.coefficient || d.zasilanieZPompowni != defaultDataVersion.zasilanieZPompowni)
         {
+
             defaultDataVersion.coefficient = d.coefficient;
             defaultDataVersion.zasilanieZPompowni = d.zasilanieZPompowni;
             defaultDataVersion.nodesRozbiory = d.nodesRozbiory;
@@ -124,60 +124,60 @@ public class AppLogic : MonoBehaviour
         return value;
     }
 
-    decimal[] ZasilanieZPompowniZbiornika()
+    decimal[] ZasilanieZPompowniZbiornika(DataVersion data)
     {
         int p = 0;
-        int zPipe = defaultDataVersion.pipeLenght.Length - 1;
-        int zNode = defaultDataVersion.nodesLocation.Length - 1;
+        int zPipe = data.pipeLenght.Length - 1;
+        int zNode = data.nodesLocation.Length - 1;
 
-        defaultDataVersion.nodesOutflows[p] = defaultDataVersion.zasilanieZPompowni;
-        KierunekPrzeplywu(p, true);
+        data.nodesOutflows[p] = data.zasilanieZPompowni;
+        FlowDirection(p, true);
 
-        defaultDataVersion.nodesOutflows[zNode] = defaultDataVersion.zasilanieZeZbiornika;
-        KierunekPrzeplywu(zPipe, false);
+        data.nodesOutflows[zNode] = data.zasilanieZeZbiornika;
+        FlowDirection(zPipe, false);
 
-        return defaultDataVersion.nodesOutflows;
+        return data.nodesOutflows;
     }
 
-    decimal[] WplywNaOdcinkachZPompowniZbiornika()
+    decimal[] InflowOnPipesFromStartingFullNodes(DataVersion data)
     {
         int p = 0;
-        int zPipe = defaultDataVersion.pipeLenght.Length - 1;
-        int zNode = defaultDataVersion.nodesLocation.Length - 1;
+        int zPipe = data.pipeLenght.Length - 1;
+        int zNode = data.nodesLocation.Length - 1;
 
-        defaultDataVersion.pipesInflows[p] = defaultDataVersion.nodesOutflows[p];
-        KierunekPrzeplywu(p, true);
+        defaultDataVersion.pipesInflows[p] = data.nodesOutflows[p];
+        FlowDirection(p, true);
 
-        defaultDataVersion.pipesInflows[zPipe] = defaultDataVersion.nodesOutflows[zNode];
-        KierunekPrzeplywu(zPipe, false);
+        defaultDataVersion.pipesInflows[zPipe] = data.nodesOutflows[zNode];
+        FlowDirection(zPipe, false);
 
-        return defaultDataVersion.pipesInflows;
+        return data.pipesInflows;
     }
 
-    bool[] UstalWskazowkiZegara()
+    bool[] UstalWskazowkiZegara(DataVersion data)
     {
-        for (int i = 0; i < defaultDataVersion.kierunekRuchuWskazowekZegara.Length; i++)
+        for (int i = 0; i < data.kierunekRuchuWskazowekZegara.Length; i++)
         {
             if (i == 0)
             {
-                defaultDataVersion.kierunekRuchuWskazowekZegara[i] = true;
+                data.kierunekRuchuWskazowekZegara[i] = true;
             }
-            else if (i == defaultDataVersion.kierunekRuchuWskazowekZegara.Length - 1)
+            else if (i == data.kierunekRuchuWskazowekZegara.Length - 1)
             {
-                defaultDataVersion.kierunekRuchuWskazowekZegara[i] = false;
+                data.kierunekRuchuWskazowekZegara[i] = false;
             }
             else
             {
                 if (i == 1 || i == 2 || i == 5)
-                    defaultDataVersion.kierunekRuchuWskazowekZegara[i] = true;
+                    data.kierunekRuchuWskazowekZegara[i] = true;
                 else
-                    defaultDataVersion.kierunekRuchuWskazowekZegara[i] = false;
+                    data.kierunekRuchuWskazowekZegara[i] = false;
             }
         }
-        return defaultDataVersion.kierunekRuchuWskazowekZegara;
+        return data.kierunekRuchuWskazowekZegara;
     }
 
-    bool KierunekPrzeplywu(int pipeIndex, bool kierunekPrzeplyw)
+    bool FlowDirection(int pipeIndex, bool kierunekPrzeplyw)
     {
         defaultDataVersion.kierunekPrzeplywu[pipeIndex] = kierunekPrzeplyw;
         return defaultDataVersion.kierunekPrzeplywu[pipeIndex];
@@ -239,6 +239,54 @@ public class AppLogic : MonoBehaviour
         return defaultDataVersion._pipesAdjacentNodes; 
     }
 
+    void TransferUIElementsToData(DataVersion dataVersion)
+    {
+        int pipeCount = dataVersion.pipesOutflows.Length;
+        int nodeCount = dataVersion.nodesOutflows.Length;
+
+        List<Pipe> pipes = dataVersion.Pipes;
+        List<Node> nodes = dataVersion.Nodes;
+
+        for (int i = 0; i < pipeCount; i++)
+        {
+            Pipe pipe = new Pipe(i);
+            pipe.length = dataVersion.pipeLenght[i];
+            pipe.rozbiory = dataVersion.pipesRozbiory[i];
+            pipes.Add(pipe);
+
+        }
+
+        for (int i = 0; i < nodeCount; i++)
+        {
+            Node node = new Node();
+            node.index = i;
+            node.rozbiory = dataVersion.nodesRozbiory[i];
+            node.location = dataVersion.nodesLocation[i];
+            nodes.Add(node);
+        }
+
+        for (int i = 0; i < pipeCount; i++)
+        {
+            List<int> list = dataVersion._pipesAdjacentNodes[i];
+            int node1 = list[0];
+            int node2 = list[1];
+
+            pipes[i].lowerNode = nodes[node1];
+            pipes[i].upperNode = nodes[node2];
+        }
+
+        for (int i = 0; i < nodeCount; i++)
+        {
+            List<int> list = dataVersion._nodeAndAdjacentPipes[i];
+            List<Pipe> connectedPipes = new List<Pipe>();
+
+            foreach (var pipe in list)
+            {
+                connectedPipes.Add(pipes[pipe]);
+            }
+            nodes[i].ConnectedPipes = connectedPipes;
+        }
+    }
 
     #endregion
 

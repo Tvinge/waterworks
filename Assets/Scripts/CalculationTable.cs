@@ -193,7 +193,7 @@ partial class CalculationTable : MonoBehaviour
                 string propertyName = allProperties[j].Name;
                 int pipeIndex = i - ringDataCounter * pipesPerRing;
                 //Debug.Log("ringData: " + ringDataCounter + ", pipe number: " + pipeIndex);
-                object propertyValue = ReflectionHelper.GetPropertyValue(ringDatas[ringDataCounter].Iterations[0].pipeCalculations[pipeIndex], propertyName);
+                object propertyValue = ReflectionHelper.GetPropertyValue(ringDatas[ringDataCounter].Iterations.Last().pipeCalculations[pipeIndex], propertyName);
                 decimal value = (decimal)propertyValue;
                 iterationTables.Last().transform.GetChild(1).GetChild(j + horizontalCellsCount * i).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
             }

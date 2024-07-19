@@ -49,64 +49,147 @@ public class IterationManager : MonoBehaviour
 
     void PipeModellingHub()//later on acomodate more than 1 ring
     {
-        int ringCount = 2;
-        List<RingData> ringDatas = new List<RingData>();
-        for (int i = 0; i < ringCount; i++)
-        {
-            ringDatas.Add(CalculateFirstIteration(i));
-        }
+        List<RingData> ringDatas = CreateRingDatas();
+        int ringCount = ringDatas.Count;
+        int iterationsCount = 0;
 
         for (int i = 0; i < ringCount; i++)
         {
-            for (int j = 0; j < pipesPerRing; j++)
-            {
-                ringDatas[i].Iterations.Last().pipeCalculations[j].DeltaDesignFlow = ringDatas[i].deltaDesignFlowForWholeRing;
-            }
+            ringDatas[i] = CalculateFirstIteration(ringDatas[i], i);                 //no need to calculate pipes which are not part of the ring
         }
-        /*
-        int iterationsCount = 0;
-        while (IsNextIterrationNeccesary() == true)
+        SetDeltaDesignFlowForRing(ringCount, pipesPerRing, ringDatas);
+        Pipe pipe = FindPipesInMultipleRings(ringDatas);                            //atm 2 rings == 1 pipe in common
+        CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
+        updateIterationResultsData?.Invoke(ringDatas);
+
+        while (IsNextIterrationNeccesary(ringDatas) == true)
         {
             for (int j = 0; j < ringCount; j++)
             {
-                ringDatas[j].Iterations.Add(CalculateNextIteration());
+                Debug.Log("DESIGNFLOW IN LAST ITERATION: " + ringDatas[0].Iterations.Last().pipeCalculations[0].DesignFlow);
+                Debug.Log("DELTADESIGNFLOW IN LAST ITERATION: " + ringDatas[0].Iterations.Last().pipeCalculations[0].DeltaDesignFlow);
+
+                ringDatas[j].Iterations.Add(CalculateNextIteration(ringDatas[j]));
             }
+            SetDeltaDesignFlowForRing(ringCount, pipesPerRing, ringDatas);
+            CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
+            updateIterationResultsData?.Invoke(ringDatas);
+            
             iterationsCount++;
-            if (iterationsCount > 100)
+            if (iterationsCount > 5)
             {
                 Debug.Log("TOO MANY ITERATIONS");
                 break;
             }
-        }*/
-        //CalculateVelocityFlow();
+            Debug.Log("ITERATION: " + iterationsCount);
 
-        updateIterationResultsData?.Invoke(ringDatas);
+        }
+        foreach (var ringData in ringDatas)
+        {
+            foreach (var pipeFinalCalculation in ringData.Iterations.Last().pipeCalculations)
+            {/*
+                foreach (var pipeKey in ringData.PipesDictionary.Keys)
+                {
+                    ringData.PipesDictionary.TryGetValue(pipeKey, out Pipe pipeI);
+                    pipeFinalCalculation.finalVelocity = CalculateVelocityFlow(pipeFinalCalculation, pipeI);
+                }*/
+                
+                foreach (var pipeI in ringData.Pipes)
+                {
+                    pipeFinalCalculation.finalVelocity = CalculateVelocityFlow(pipeFinalCalculation, pipeI);
+                }
+            }
+        }
+
+    }
+        
+    void SetDeltaDesignFlowForRing(int ringCount, int pipesPerRing, List<RingData> ringDatas)
+    {
+        for (int i = 0; i < ringCount; i++)
+        {
+            for (int j = 0; j < pipesPerRing; j++)
+            {
+                ringDatas[i].Iterations.Last().pipeCalculations[j].DeltaDesignFlow = ringDatas[i].Iterations.Last().deltaDesignFlowForWholeRing;
+            }
+        }
     }
 
-    Pipe TransferPipeDataToNewPipeObject(int pipeIndex)
+    Pipe FindPipesInMultipleRings(List<RingData> ringDatas)
     {
-        Pipe pipe = new Pipe(V);
+        for (int i = 0; i < ringDatas.Count; i++)
+        {
+            foreach (var pipeKey in ringDatas[i].PipesDictionary.Keys)
+            {
+                for (int j = 0; j < ringDatas.Count; j++)
+                {
+                    if (i == j) continue; // Skip checking against itself
 
-        pipe.index = pipeIndex;
-        pipe.length = dataVersion.pipeLenght[pipeIndex];
-        pipe.inflow = dataVersion.pipesInflows[pipeIndex];
-        pipe.outflow = dataVersion.pipesOutflows[pipeIndex];
-        pipe.rozbiory = dataVersion.pipesRozbiory[pipeIndex];
-
-        return pipe;
+                    if (ringDatas[j].PipesDictionary.ContainsKey(pipeKey))
+                    {
+                        ringDatas[i].PipesDictionary.TryGetValue(pipeKey, out Pipe pipeI);
+                        
+                        return pipeI;
+                    }
+                }
+            }
+        }
+        return null;
     }
-
-    RingData CalculateFirstIteration(int ringDataCounter)
+    List<RingData> CreateRingDatas()
     {
-        ringData = new RingData(pipesPerRing);
+        //Hardcoded values for now, implement graphsearching algorithm for waterwork with dynamic amount of pipes and nodes.
+
+        List<RingData> ringDatas = new List<RingData>();
+        
+        RingData ringdata1 = new RingData(4);
+        RingData ringdata2 = new RingData(4);
+
+        ringdata1.PipesDictionary.Add(new PipeKey(1, 2), new Pipe(1));
+        ringdata1.PipesDictionary.Add(new PipeKey(2, 4), new Pipe(2));
+        ringdata1.PipesDictionary.Add(new PipeKey(4, 3), new Pipe(3));
+        ringdata1.PipesDictionary.Add(new PipeKey(3, 1), new Pipe(4));
+
+        ringdata2.PipesDictionary.Add(new PipeKey(4, 6), new Pipe(5));
+        ringdata2.PipesDictionary.Add(new PipeKey(6, 5), new Pipe(6));
+        ringdata2.PipesDictionary.Add(new PipeKey(5, 3), new Pipe(7));
+        ringdata2.PipesDictionary.Add(new PipeKey(3, 4), new Pipe(3));
+
+        ringDatas.Add(ringdata1);
+        ringDatas.Add(ringdata2);
+
+        return ringDatas;
+    }
+    List<RingData> CalculateDeltaDesingFlowForPipesInMultipleRings(List<RingData> ringDatas, int i)
+    {
+        var firstRing = ringDatas[0].Iterations.Last().pipeCalculations.Find(x => x.Index == i);
+        var secondRing = ringDatas[1].Iterations.Last().pipeCalculations.Find(x => x.Index == i);
+
+        decimal flow1 = firstRing.DeltaDesignFlow;
+        decimal flow2 = secondRing.DeltaDesignFlow;
+
+        firstRing.DeltaDesignFlow  = flow1 - flow2;
+        secondRing.DeltaDesignFlow  = flow2 - flow1;
+
+        return ringDatas;
+    }
+    RingData CalculateFirstIteration(RingData ringData, int ringDataCounter)
+    {
         List<RingData.PipeCalculation> pipeCalculations = new List<RingData.PipeCalculation>();
         RingData.IterationData iterationData;
 
         decimal[] kValues = new decimal[pipesPerRing];
-
+        ringData.Pipes = new List<Pipe>();
         for (int i = 0; i < pipesPerRing; i++)
         {
-            Pipe pipe = TransferPipeDataToNewPipeObject(i + ringDataCounter * pipesPerRing);
+            int pipeIndex = ringData.PipesDictionary.ElementAt(i).Value.index;
+            int pipeIndexForArrays = i + ringDataCounter * pipesPerRing;
+            Pipe pipe = dataVersion.Pipes[pipeIndexForArrays];
+
+            pipe.index = pipeIndex;
+            pipe.flowDirection = dataVersion.kierunekPrzeplywu[pipeIndexForArrays];
+            pipe.inflow = dataVersion.pipesInflows[pipeIndexForArrays];
+            pipe.outflow = dataVersion.pipesOutflows[pipeIndexForArrays];
+            pipe.velocity = 1.0m;
 
             pipe.designFlow = CalculateDesingFlow(pipe);
             pipe.diameter = CalculateDiameter(pipe);
@@ -116,67 +199,57 @@ public class IterationManager : MonoBehaviour
             pipe.kValue = CalculateKValue(pipe);
             kValues[i] = pipe.kValue;
 
-            //ringData.Pipes.Add(new PipeKey("node1", "node2"), pipe);
-
             if (pipeCalculations.Count < pipesPerRing)
             {
                 pipeCalculations.Add(CalculateIteration(pipe));
             }
+            ringData.Pipes.Add(pipe);
         }
-
-        ringData.deltaDesignFlowForWholeRing = CalculateDeltaFlow(pipeCalculations);
-
-
         iterationData = new RingData.IterationData(pipeCalculations);
         ringData.Iterations = new List<RingData.IterationData>();
         ringData.Iterations.Add(iterationData);
+        ringData.Iterations.Last().deltaDesignFlowForWholeRing = CalculateDeltaFlow(pipeCalculations);
 
         return ringData;
     }
-
-    List<RingData.PipeCalculation> CalculateDeltaFlowAfterIteration(List<RingData.PipeCalculation> pipeCalculations)
+    RingData.IterationData CalculateNextIteration(RingData ringData)
     {
+        List<RingData.PipeCalculation> newPipeCalculations = new List<RingData.PipeCalculation>();
+        RingData.IterationData iterationData;
 
-
-        return pipeCalculations;
-    }
-    
-    RingData.IterationData CalculateNextIteration()
-    {
-        List<RingData.PipeCalculation> pipeCalculations = new List<RingData.PipeCalculation>();
         for (int i = 0; i < pipesPerRing; i++)
         {
-            RingData.PipeCalculation pipeCalculation = ringData.Iterations.Last().pipeCalculations[i];
-            pipeCalculations.Add(CalculateIteration(pipeCalculation));
+            var pipeCalculation = ringData.Iterations.Last().pipeCalculations[i];
+            newPipeCalculations.Add(CalculateIteration(pipeCalculation));
         }
+        iterationData = new RingData.IterationData(newPipeCalculations);
+        iterationData.deltaDesignFlowForWholeRing = CalculateDeltaFlow(newPipeCalculations);
 
-        return new RingData.IterationData(pipeCalculations);
+        return iterationData;
     }
 
     RingData.PipeCalculation CalculateIteration(Pipe pipe)
     {
         pipeCalculation = new RingData.PipeCalculation();
+        pipeCalculation.Index = pipe.index;
         pipeCalculation.KValue = pipe.kValue;
         pipeCalculation.DesignFlow = IncludeDirectionInDesignFlow(pipe);
         pipeCalculation.HeadLoss = CalculateHeadLoss(pipe);
         pipeCalculation.Quotient = CalculateQuotientOfHeadLossAndDesignFlow(pipeCalculation);
-        //pipeCalculation.DeltaDesignFlow = CalculateDeltaFlow(pipeCalculation);
-
         return pipeCalculation;
     }
     RingData.PipeCalculation CalculateIteration(RingData.PipeCalculation pipeCalculation)
     {
         RingData.PipeCalculation nextPipeCalculation = new RingData.PipeCalculation();
+        nextPipeCalculation.Index = pipeCalculation.Index;
         nextPipeCalculation.KValue = pipeCalculation.KValue;
         nextPipeCalculation.DesignFlow = IteratedDesignFlow(pipeCalculation);
         nextPipeCalculation.HeadLoss = CalculateHeadLoss(nextPipeCalculation);
         nextPipeCalculation.Quotient = CalculateQuotientOfHeadLossAndDesignFlow(nextPipeCalculation);
-        //nextPipeCalculation.DeltaDesignFlow = CalculateDeltaFlow(nextPipeCalculation);
-
         return nextPipeCalculation;
     }
 
-    bool IsNextIterrationNeccesary()
+    bool IsNextIterrationNeccesary(List<RingData> ringDatas)
     {
         List<bool> sumOfHeadLossList = new List<bool>();
         List<bool> headLossList = new List<bool>();
@@ -184,28 +257,29 @@ public class IterationManager : MonoBehaviour
 
         foreach (var ringData in ringDatas)
         {
-            sumOfHeadLossList.Add(IsSumOfHeadLossSmallerThanLevelOfAcurracy());
+            var pipeCalculations = ringData.Iterations.Last().pipeCalculations;
+            sumOfHeadLossList.Add(IsSumOfHeadLossSmallerThanLevelOfAcurracy(pipeCalculations));
 
-            foreach (var pipeCalculation in ringData.Iterations.Last().pipeCalculations)
+            foreach (var pipeCalculation in pipeCalculations)
             {
-                headLossList.Add(IsHeadLossSmallerThanLevelOfAcurracy());
-                velocityList.Add(IsVelocityGraterOrEqualThanLevelOfAcurracy());
+                headLossList.Add(IsHeadLossSmallerThanLevelOfAcurracy(pipeCalculation));
+                velocityList.Add(IsVelocityGraterOrEqualThanLevelOfAcurracy(pipeCalculation));
             }
         }
 
-        if (sumOfHeadLossList.Contains(false))
+        if (sumOfHeadLossList.Contains(false)) 
         {
-            return true;
+            return true; //next iteration is neccesary
         }
         else
         {
             if (headLossList.Contains(false) || velocityList.Contains(false))
-            {
-                return true;
+            { 
+                return true; //next iteration is neccesary
             }
             else
             {
-                return false;
+                return false; //stop iterating
             }
         }
 
@@ -240,7 +314,7 @@ public class IterationManager : MonoBehaviour
         //if (v >= 0.5m)
         return velocity;
     }
-    decimal CalculateVelocityFlow(Pipe pipe, RingData.PipeCalculation pipeCalculation)
+    decimal CalculateVelocityFlow(RingData.PipeCalculation pipeCalculation, Pipe pipe)
     {
         decimal velocity = 4 * pipeCalculation.DesignFlow / 1000 / (decimal)Mathf.PI / (decimal)Mathf.Pow((float)pipe.diameter, 2) / 1000000;
         return velocity;
@@ -262,11 +336,14 @@ public class IterationManager : MonoBehaviour
     //Iterations
     decimal IncludeDirectionInDesignFlow(Pipe pipe)
     {
-        if (pipe.flowDirection != 1)
-        {
-            pipe.flowDirection = 1;
-        }
-        decimal designFlowWithDirection = pipe.designFlow * (decimal)pipe.flowDirection;
+        int flowDirection = 0;
+
+        if (pipe.flowDirection == true)
+            flowDirection = 1;
+        else
+            flowDirection = -1;
+
+        decimal designFlowWithDirection = pipe.designFlow * flowDirection;
         return designFlowWithDirection;
     }
     decimal IteratedDesignFlow(RingData.PipeCalculation pipeCalculation)
@@ -304,9 +381,8 @@ public class IterationManager : MonoBehaviour
     }
 
     //conditions for next iteration
-    bool IsSumOfHeadLossSmallerThanLevelOfAcurracy()
+    bool IsSumOfHeadLossSmallerThanLevelOfAcurracy(List<RingData.PipeCalculation> pipeCalculations)
     {
-        var pipeCalculations = ringData.Iterations.Last().pipeCalculations;
         decimal headLoss = pipeCalculations.Sum(pipeCalculations => pipeCalculations.HeadLoss);
         decimal levelOfAccuracy = 0.5m;
 
@@ -315,7 +391,7 @@ public class IterationManager : MonoBehaviour
         else
             return false;
     }
-    bool IsHeadLossSmallerThanLevelOfAcurracy()
+    bool IsHeadLossSmallerThanLevelOfAcurracy(RingData.PipeCalculation pipeCalculation)
     {
         decimal levelOfAccuracy = 5m;
 
@@ -324,7 +400,7 @@ public class IterationManager : MonoBehaviour
         else
             return false;
     }
-    bool IsVelocityGraterOrEqualThanLevelOfAcurracy()
+    bool IsVelocityGraterOrEqualThanLevelOfAcurracy(RingData.PipeCalculation pipeCalculation)
     {
         decimal levelOfAccuracy = 0.5m;
 

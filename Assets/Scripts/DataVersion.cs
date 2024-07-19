@@ -51,6 +51,11 @@ public class DataVersion : IDataVersion
 
     public Dictionary<int, List<int>> _pipesAdjacentNodes { get; set; } = new Dictionary<int, List<int>>();
 
+    public List<Pipe> Pipes { get; set; } = new List<Pipe>();
+    public List<Node> Nodes { get; set; } = new List<Node>();
+
+
+
     public Vector3[] pipesPositions = Enumerable.Repeat(Vector3.zero, 9).ToArray();
     public Vector3[] nodesPositions = Enumerable.Repeat(Vector3.zero, 8).ToArray();
 
