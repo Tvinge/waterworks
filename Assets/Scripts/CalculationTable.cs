@@ -9,6 +9,7 @@ using TMPro;
 
 
 
+
 partial class CalculationTable : MonoBehaviour
 {
     [SerializeField] GameObject CalculationTableObject;
@@ -87,20 +88,33 @@ partial class CalculationTable : MonoBehaviour
 
     void OnIterationDataUpdated(List<RingData> ringDatas)
     {
-        GameObject newIterationTable = Instantiate(IterationTablePrefab, CalculationTableObject.transform);
+        GameObject newIterationTable = Instantiate(IterationTablePrefab, CalculationTableObject.transform.GetChild(1));
         iterationTables.Add(newIterationTable);
 
         Type type = typeof(RingData.PipeCalculation);
-        PropertyInfo[] allProperties = new PropertyInfo[5];
-        allProperties[0] = type.GetProperty("DesignFlow");
-        allProperties[1] = type.GetProperty("HeadLoss");
-        allProperties[2] = type.GetProperty("Quotient");
-        allProperties[3] = type.GetProperty("DeltaDesignFlow");
-        allProperties[4] = type.GetProperty("finalVelocity");
+        PropertyInfo[] allProperties = new PropertyInfo[6];
+        allProperties[0] = type.GetProperty("Diameter");
+        allProperties[1] = type.GetProperty("DesignFlow");
+        allProperties[2] = type.GetProperty("HeadLoss");
+        allProperties[3] = type.GetProperty("Quotient");
+        allProperties[4] = type.GetProperty("DeltaDesignFlow");
+        allProperties[5] = type.GetProperty("finalVelocity");
 
-        int horizontalCellsCount = allProperties.Length;
         int verticalCellsCount = 8;
+        int horizontalCellsCount = allProperties.Length;
 
+        //if (ringDatas.Last().Iterations.Last().pipeCalculations.Last().finalVelocity != 0) //no matter which one
+        //{
+        //    allProperties[5] = type.GetProperty("finalVelocity");
+        //    horizontalCellsCount = allProperties.Length;
+        //}
+        //else
+        //{
+        //    horizontalCellsCount = allProperties.Length - 1;
+        //}
+
+
+        
         //RectTransform calculationTableRectTransform = CalculationTableObject.GetComponent<RectTransform>();
         RectTransform newIterationTableRectTransform = newIterationTable.GetComponent<RectTransform>();
 
@@ -111,21 +125,77 @@ partial class CalculationTable : MonoBehaviour
 
         CreateCellsInTable(verticalCellsCount, horizontalCellsCount, newIterationTable);
         PopulateCellsWithText(horizontalCellsCount, verticalCellsCount, allProperties, ringDatas);
+        
+        foreach(var ringData in ringDatas)
+        {
+            int i = ringData.ringIndex;
+            var iterationTableAddons = iterationTables.Last().transform.GetChild(2);
+            var sumOfHeadloss = iterationTableAddons.GetChild(i).GetChild(1).GetComponent<TextMeshProUGUI>();
+
+            AddToTableAdditionalIterationInfo(ringData, sumOfHeadloss);
+            ChangeColor(ringData, sumOfHeadloss, horizontalCellsCount, verticalCellsCount);
+        }
+
+    }
+    void AddToTableAdditionalIterationInfo(RingData ringData, TMPro.TextMeshProUGUI sumOfHeadloss)
+    {
+        //var sumOfQuotient = iterationTableAddons.GetChild(i+2).GetChild(1).GetComponent<TextMeshProUGUI>();
+
+        sumOfHeadloss.text = "HlSum: " + ringData.Iterations.Last().sumOfHeadloss.ToString("f2");
+        //sumOfQuotient.text = "QuoSum: " + ringData.Iterations.Last().sumOfQuotients.ToString("f2");
+
+    }
+    
+    void ChangeColor(RingData ringData, TMPro.TextMeshProUGUI sumOfHeadloss, int horizontalCellsCount, int verticalCellsCount)
+    {
+        if (ringData.Iterations.Last().sumOfHeadlossBool == true)
+            sumOfHeadloss.color = Color.green;
+        else
+            sumOfHeadloss.color = Color.red;
+      
+        for (int i = 0; i < verticalCellsCount; i++)
+        {
+            if (ringData.Iterations.Last().headlossList == null)
+                break;
+
+            if (ringData.Iterations.Last().headlossList[i] == true) 
+            {
+                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 2).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.green;
+            }
+            else
+            {
+                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 2).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.red;
+            }
+
+            if (ringData.Iterations.Last().velocityList[i] == false)
+            {
+                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 5).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.red;
+            }
+            else
+            {
+                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 5).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.green;
+            }
+
+        }
     }
 
     void SetTablesChildrenSizes(RectTransform rectTransform, Vector2Int vector)
     {
+        
         Vector2 parentVector = rectTransform.transform.parent.GetComponent<RectTransform>().sizeDelta;
 
+        Vector2 vectoro = new Vector2();
+        vectoro.x = 2000;
 
-        if (parentVector.x > vector.x)//NewIterationTable
+        if (parentVector.x < vectoro.x)//NewIterationTable
         {
-            parentVector.x = parentVector.x + vector.x;
-
+            parentVector.x = vector.x;
             rectTransform.transform.parent.GetComponent<RectTransform>().sizeDelta = parentVector;
+
             rectTransform.sizeDelta = vector;
             rectTransform.GetChild(0).GetComponent<RectTransform>().sizeDelta = new Vector2(vector.x, cell.height);
             rectTransform.GetChild(1).GetComponent<RectTransform>().sizeDelta = new Vector2(vector.x, vector.y - cell.height);
+            rectTransform.GetChild(2).GetComponent<RectTransform>().sizeDelta = new Vector2(vector.x, cell.height);
         }
         else //BaseTable
         {
@@ -153,7 +223,7 @@ partial class CalculationTable : MonoBehaviour
         {
             childCounter++;
         }
-        if (childCounter != 3)
+        if (childCounter == 3)
         {
             SpawnCells(horizontalCells, parent.transform.GetChild(0));
             SpawnCells(cellsCount, parent.transform.GetChild(1));
@@ -192,13 +262,17 @@ partial class CalculationTable : MonoBehaviour
             {
                 string propertyName = allProperties[j].Name;
                 int pipeIndex = i - ringDataCounter * pipesPerRing;
-                //Debug.Log("ringData: " + ringDataCounter + ", pipe number: " + pipeIndex);
+                int cellIndex = j + horizontalCellsCount * i;
+
                 object propertyValue = ReflectionHelper.GetPropertyValue(ringDatas[ringDataCounter].Iterations.Last().pipeCalculations[pipeIndex], propertyName);
                 decimal value = (decimal)propertyValue;
-                iterationTables.Last().transform.GetChild(1).GetChild(j + horizontalCellsCount * i).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
+                iterationTables.Last().transform.GetChild(1).GetChild(cellIndex).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
             }
         }
     }
+
+
+
 
     void UpdateCellText(int verticalCellsCount, int horizontalCellsCount, DataVersion dataVersion, PropertyInfo[] properties)
     {
@@ -221,10 +295,23 @@ partial class CalculationTable : MonoBehaviour
         PropertyInfo[] properties = typeof(DataVersion).GetProperties().Where(p => p.PropertyType == typeof(decimal[])).ToArray();
         return properties;
     }
+    /*
+    PropertyInfo[] FillPropertiesArrayy(List<RingData> ringDatas)
+    {
+        List<PropertyInfo[]> pipesProperties = ;
+        foreach (var ringData in ringDatas)
+        {
+            List<PropertyInfo[]> pipesProperties = ringData.GetPipesProperties();
+
+            return pipesProperties;
+        }
+        return pipesProperties;
+   
+}*/
 
     void SpawnCells(int cellsToSpawn, Transform parentToSpawn)
     {
-        Debug.Log("Cells Count = " + cellsToSpawn + ", parent: " + parentToSpawn);
+        Debug.Log("Cells Count = " + cellsToSpawn + ", in parent: " + parentToSpawn);
         for (int i = 0; i < cellsToSpawn; i++)
         {
             GameObject cell = Instantiate(CellPrefab, parentToSpawn);

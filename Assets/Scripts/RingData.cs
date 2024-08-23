@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO.Pipes;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Experimental.AI;
 
@@ -9,7 +10,8 @@ public class Node
     public decimal inflow;
     public decimal outflow;
     public decimal rozbiory;
-    public decimal location;
+    public decimal height;
+    public RectTransform location;
     public List<Pipe> ConnectedPipes { get; set; } = new List<Pipe>();
 
 }
@@ -27,13 +29,32 @@ public class Pipe
     public decimal velocity { get; set; }
     public decimal cmValue { get; set; }
     public decimal kValue { get; set; }
-    public Node lowerNode { get; set; }
-    public Node upperNode { get; set; }
+    public Node inflowNode { get; set; }
+    public Node outflowNode { get; set; }
 
     public Pipe(int index)
     {
         this.index = index;
         //this.velocity = velocity;
+    }
+    public Pipe DeepCopy(Pipe pipe)
+    {
+        Pipe newPipe = pipe;
+        newPipe.flowDirection = this.flowDirection;
+        newPipe.index = this.index;
+        newPipe.inflow = this.inflow;
+        newPipe.outflow = this.outflow;
+        newPipe.rozbiory = this.rozbiory;
+        newPipe.designFlow = this.designFlow;
+        newPipe.diameter = this.diameter;
+        newPipe.roundedDiameter = this.roundedDiameter;
+        newPipe.velocity = this.velocity;
+        newPipe.cmValue = this.cmValue;
+        newPipe.kValue = this.kValue;
+        newPipe.inflowNode = this.inflowNode;
+        newPipe.outflowNode = this.outflowNode;
+
+        return newPipe;
     }
 }
 
@@ -68,10 +89,14 @@ public class PipeKey
 //ITERATIONS JEST LISTA ITERATIONDATA KTORA Z KOLEJI JEST LISTA OBLICZONYCH RUR/ POJEDYNCZEGO PIERSCIENIA
 public class RingData
 {
-    int ringIndex;
-    List<int> nodesInRing;
+    //useless
+    public Vector3 ringCenter;
 
+
+    public int ringIndex;
+    List<int> nodesInRing;
     public int pipesPerRing;
+
 
     public Dictionary<PipeKey, Pipe> PipesDictionary { get; set; }
     public List<Pipe> Pipes;
@@ -83,7 +108,7 @@ public class RingData
     public List<IterationData> Iterations { get; set; }
 
 
-    public RingData (int numberOfPipes)
+    public RingData(int numberOfPipes)
     {
         PipesDictionary = new Dictionary<PipeKey, Pipe>(numberOfPipes);
         PipesInMultipleRings = new Dictionary<PipeKey, bool>(numberOfPipes);
@@ -91,7 +116,7 @@ public class RingData
         IterationData iterations = new IterationData(new List<PipeCalculation>(numberOfPipes));
         pipesPerRing = numberOfPipes;
     }
-    
+
     /*
     public void AddPipe(int node1, int node2, decimal velocity)
     {
@@ -100,7 +125,7 @@ public class RingData
 
     public class PipeCalculation
     {
-        //public decimal Diameter { get; set; }
+        public decimal Diameter { get; set; }
         //public decimal Velocity { get; set; }
         public int Index { get; set; }
         public decimal DesignFlow { get; set; }
@@ -117,11 +142,31 @@ public class RingData
         //lista obliczen dla kazdej rury w pierscieniu
         public List<PipeCalculation> pipeCalculations;
         public decimal deltaDesignFlowForWholeRing;
+        public decimal sumOfHeadloss;
+        public decimal sumOfQuotients; //useless
+
+        public bool sumOfHeadlossBool;
+        public List<bool> headlossList;
+        public List<bool> velocityList;
 
         public IterationData(List<PipeCalculation> pipeCalculations)
         {
             this.pipeCalculations = pipeCalculations;
         }
     }
-}
 
+
+    public List<PropertyInfo[]> GetPipesProperties()
+    {
+        List<PropertyInfo[]> pipesProperties = new List<PropertyInfo[]>();
+
+        foreach (Pipe pipe in Pipes)
+        {
+            PropertyInfo[] properties = pipe.GetType().GetProperties();
+            pipesProperties.Add(properties);
+        }
+
+        return pipesProperties;
+    }
+
+}

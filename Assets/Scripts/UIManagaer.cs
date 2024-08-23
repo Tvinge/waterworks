@@ -96,8 +96,8 @@ public class UIManager : MonoBehaviour
         Debug.Log("dataevent in UImanager");
         PrzypiszWartosciRozbiorow(d.nodesRozbiory, d.pipesRozbiory);
         UpdateOutflowsOnNodes(d.nodesOutflows);
-        UpdatePipesOutflow(d.pipesOutflows, d.kierunekPrzeplywu);
-        UpdateInflowValues(d.pipesOutflows, d.pipesInflows, d.doubleInflowsOnPipes, d.kierunekPrzeplywu);
+        UpdatePipesOutflow(d.pipesOutflows, d.flowDirection);
+        UpdateInflowValues(d.pipesOutflows, d.pipesInflows, d.doubleInflowsOnPipes, d.flowDirection);
 
         previousDataVersion = d;
     }

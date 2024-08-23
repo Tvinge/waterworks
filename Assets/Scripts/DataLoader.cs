@@ -124,7 +124,7 @@ public class DataLoader : MonoBehaviour
         dataVersion.coefficient = dataSet.coefficient;
         dataVersion.nodesRozbiory = dataSet.nodeRozbiory;
         dataVersion.pipesRozbiory = dataSet.pipeRozbiory;
-        dataVersion.pipeLenght = dataSet.pipeLength;
+        dataVersion.pipesLength = dataSet.pipeLength;
         
         return dataVersion;
     }

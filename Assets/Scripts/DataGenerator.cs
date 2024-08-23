@@ -43,14 +43,14 @@ public class DataGenerator : MonoBehaviour
             dataVersion.pipesRozbiory[i] = rozbiorDistribution[i + 5];
         }
 
-        for(int i = 0; i < dataVersion.nodesLocation.Length; i++)
+        for(int i = 0; i < dataVersion.nodesHeight.Length; i++)
         {
-            dataVersion.nodesLocation[i] = Random.Range(0, 1000);
+            dataVersion.nodesHeight[i] = Random.Range(0, 1000);
         }
-        for (int i = 0; i < dataVersion.wysokoscZabudowy.Length; i++)
+        for (int i = 0; i < dataVersion.buildingsHeight.Length; i++)
         {
-            dataVersion.pipeLenght[i] = Random.Range(200, 900);
-            dataVersion.wysokoscZabudowy[i] = 5 * Random.Range(1, 7);
+            dataVersion.pipesLength[i] = Random.Range(200, 900);
+            dataVersion.buildingsHeight[i] = 5 * Random.Range(1, 7);
         }
 
         dataVersion.nodesOutflows[0] = dataVersion.zasilanieZPompowni;

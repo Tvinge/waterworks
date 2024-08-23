@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.Events;
 using System;
+using UnityEngine.PlayerLoop;
 
 public class AppLogic : MonoBehaviour
 {
@@ -50,7 +51,7 @@ public class AppLogic : MonoBehaviour
 
     void GetNodesWithOutflowOnStart(DataVersion dataVersion)
     {
-        for (int i = 0; i < dataVersion.nodesLocation.Length; i++)
+        for (int i = 0; i < dataVersion.nodesHeight.Length; i++)
         {
             if (dataVersion.nodesOutflows[i] > 0)
             {
@@ -67,11 +68,11 @@ public class AppLogic : MonoBehaviour
     {
         data._nodeAndAdjacentPipes.Clear();
         data._pipesAdjacentNodes.Clear();
-        for (int i = 0; i < data.nodesLocation.Length; i++)
+        for (int i = 0; i < data.nodesHeight.Length; i++)
         {
             SearchForAdjacentPipes(i);
         }
-        for (int i = 0; i < data.pipeLenght.Length; i++)
+        for (int i = 0; i < data.pipesLength.Length; i++)
         {
             SearchForAdjacentNodes(i);
         }
@@ -94,7 +95,7 @@ public class AppLogic : MonoBehaviour
             defaultDataVersion.zasilanieZPompowni = d.zasilanieZPompowni;
             defaultDataVersion.nodesRozbiory = d.nodesRozbiory;
             defaultDataVersion.pipesRozbiory = d.pipesRozbiory;
-            defaultDataVersion.pipeLenght = d.pipeLenght;
+            defaultDataVersion.pipesLength = d.pipesLength;
 
             //tutaj dodac reszte zapisywanek po dodaniu kolejnych wartoœci w clasie dataversion
             Start();
@@ -127,8 +128,8 @@ public class AppLogic : MonoBehaviour
     decimal[] ZasilanieZPompowniZbiornika(DataVersion data)
     {
         int p = 0;
-        int zPipe = data.pipeLenght.Length - 1;
-        int zNode = data.nodesLocation.Length - 1;
+        int zPipe = data.pipesLength.Length - 1;
+        int zNode = data.nodesHeight.Length - 1;
 
         data.nodesOutflows[p] = data.zasilanieZPompowni;
         FlowDirection(p, true);
@@ -142,8 +143,8 @@ public class AppLogic : MonoBehaviour
     decimal[] InflowOnPipesFromStartingFullNodes(DataVersion data)
     {
         int p = 0;
-        int zPipe = data.pipeLenght.Length - 1;
-        int zNode = data.nodesLocation.Length - 1;
+        int zPipe = data.pipesLength.Length - 1;
+        int zNode = data.nodesHeight.Length - 1;
 
         defaultDataVersion.pipesInflows[p] = data.nodesOutflows[p];
         FlowDirection(p, true);
@@ -177,15 +178,15 @@ public class AppLogic : MonoBehaviour
         return data.kierunekRuchuWskazowekZegara;
     }
 
-    bool FlowDirection(int pipeIndex, bool kierunekPrzeplyw)
+    bool FlowDirection(int pipeIndex, bool flowDirection)
     {
-        defaultDataVersion.kierunekPrzeplywu[pipeIndex] = kierunekPrzeplyw;
-        return defaultDataVersion.kierunekPrzeplywu[pipeIndex];
+        defaultDataVersion.flowDirection[pipeIndex] = flowDirection;
+        return defaultDataVersion.flowDirection[pipeIndex];
     }
 
     Vector3[] DeclarePipePositions()
     {
-        for (int i = 0; i < defaultDataVersion.pipeLenght.Length; i++)
+        for (int i = 0; i < defaultDataVersion.pipesLength.Length; i++)
         {
             defaultDataVersion.pipesPositions[i] = GetComponent<Transform>().GetChild(0).GetChild(i).GetComponent<RectTransform>().anchoredPosition;
             //Debug.Log(pipesPositions[i]);
@@ -195,7 +196,7 @@ public class AppLogic : MonoBehaviour
 
     Vector3[] DeclareNodesPositions()
     {
-        for (int i = 0; i < defaultDataVersion.nodesLocation.Length; i++)
+        for (int i = 0; i < defaultDataVersion.nodesHeight.Length; i++)
         {
             defaultDataVersion.nodesPositions[i] = GetComponent<Transform>().GetChild(1).GetChild(i).GetComponent<RectTransform>().anchoredPosition;
             //Debug.Log(pipesPositions[i]);
@@ -207,7 +208,7 @@ public class AppLogic : MonoBehaviour
     {
         Vector3 nodePosition = GetComponent<Transform>().GetChild(1).GetChild(nodeIndex).GetComponent<RectTransform>().anchoredPosition;
         List<int> foundPipes = new List<int>();
-        for (int pipeIndex = 0; pipeIndex < defaultDataVersion.pipeLenght.Length; pipeIndex++)
+        for (int pipeIndex = 0; pipeIndex < defaultDataVersion.pipesLength.Length; pipeIndex++)
         {
             float distance = Vector3.Distance(nodePosition, defaultDataVersion.pipesPositions[pipeIndex]);
             if (distance <= 60)
@@ -225,7 +226,7 @@ public class AppLogic : MonoBehaviour
     {
         Vector3 pipePosition = GetComponent<Transform>().GetChild(0).GetChild(pipeIndex).GetComponent<RectTransform>().anchoredPosition;
         List<int> foundNodes = new List<int>();
-        for (int nodeIndex = 0; nodeIndex < defaultDataVersion.nodesLocation.Length; nodeIndex++)
+        for (int nodeIndex = 0; nodeIndex < defaultDataVersion.nodesHeight.Length; nodeIndex++)
         {
             float distance = Vector3.Distance(pipePosition, defaultDataVersion.nodesPositions[nodeIndex]);
             //Debug.Log(distance);
@@ -250,7 +251,7 @@ public class AppLogic : MonoBehaviour
         for (int i = 0; i < pipeCount; i++)
         {
             Pipe pipe = new Pipe(i);
-            pipe.length = dataVersion.pipeLenght[i];
+            pipe.length = dataVersion.pipesLength[i];
             pipe.rozbiory = dataVersion.pipesRozbiory[i];
             pipes.Add(pipe);
 
@@ -261,18 +262,20 @@ public class AppLogic : MonoBehaviour
             Node node = new Node();
             node.index = i;
             node.rozbiory = dataVersion.nodesRozbiory[i];
-            node.location = dataVersion.nodesLocation[i];
+            node.height = dataVersion.nodesHeight[i];
+            node.location = transform.GetChild(1).GetChild(i).GetComponent<RectTransform>();
             nodes.Add(node);
         }
 
         for (int i = 0; i < pipeCount; i++)
         {
             List<int> list = dataVersion._pipesAdjacentNodes[i];
+
             int node1 = list[0];
             int node2 = list[1];
 
-            pipes[i].lowerNode = nodes[node1];
-            pipes[i].upperNode = nodes[node2];
+            pipes[i].inflowNode = nodes[node1];
+            pipes[i].outflowNode = nodes[node2];
         }
 
         for (int i = 0; i < nodeCount; i++)
@@ -290,6 +293,14 @@ public class AppLogic : MonoBehaviour
 
     #endregion
 
+    List<bool> DetermineFlowDirection(Node node)
+    {
+        List<bool> bools = new List<bool>();
+
+        foreach (var pipe in node.ConnectedPipes)
+        {      }
+                return bools;
+    }
 
     void DeclareInflowArray()
     {

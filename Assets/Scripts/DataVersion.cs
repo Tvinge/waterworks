@@ -16,7 +16,7 @@ public interface IDataVersion
     public decimal[] nodesOutflows { get; set; } 
     public decimal[] nodesInflows { get; set; } 
     public decimal[] pipesRozbiory { get; set; } 
-    public bool[] kierunekPrzeplywu { get; set; } 
+    public bool[] flowDirection { get; set; } 
     public decimal[] pipesOutflows { get; set; } 
     public decimal[] pipesInflows { get; set; } 
     public decimal[][] doubleInflowsOnPipes { get; set; } 
@@ -37,13 +37,14 @@ public class DataVersion : IDataVersion
     public decimal[] nodesRozbiory { get; set; } = new decimal[8];
     public decimal[] nodesOutflows { get; set; } = new decimal[8];
     public decimal[] nodesInflows { get; set; } = new decimal[8];
-    public decimal[] nodesLocation { get; set; } = new decimal[8];
+    public decimal[] nodesHeight { get; set; } = new decimal[8];
     public decimal[] pipesRozbiory { get; set; } = new decimal[9];
-    public bool[] kierunekPrzeplywu { get; set; } = new bool[9];
+    public bool[] flowDirection { get; set; } = new bool[9];
+    public bool[] flowDirectionForUI { get; set; } = new bool[9];
     public decimal[] pipesOutflows { get; set; } = new decimal[9];
     public decimal[] pipesInflows { get; set; } = new decimal[9];
-    public decimal[] pipeLenght { get; set; } = new decimal[9];
-    public decimal[] wysokoscZabudowy { get; set; } = new decimal[9];
+    public decimal[] pipesLength { get; set; } = new decimal[9];
+    public decimal[] buildingsHeight { get; set; } = new decimal[9];
 
     public decimal[][] doubleInflowsOnPipes { get; set; } // idk czemu dziala bez new...
 
@@ -92,9 +93,9 @@ public class DataVersion : IDataVersion
             coefficient = 1.75m,
             nodesRozbiory = new decimal[] { 0m, 17m, 12m, 23m, 26m, 29m, 30m, 0m },
             pipesRozbiory = new decimal[] { 0m, 21m, 25m, 11m, 32m, 15m, 26m, 15m, 0m },
-            nodesLocation = new decimal[] { 145m, 147m, 146m, 151m, 154m, 159m, 168m, 192m },
-            pipeLenght = new decimal[] { 150m, 400m, 350m, 320m, 290m, 300m, 315m, 290m, 250m },
-            wysokoscZabudowy = new decimal[] { 0m, 20m, 25m, 15m, 20m, 15m, 15m, 15m, 0m },
+            nodesHeight = new decimal[] { 145m, 147m, 146m, 151m, 154m, 159m, 168m, 192m },
+            pipesLength = new decimal[] { 150m, 400m, 350m, 320m, 290m, 300m, 315m, 290m, 250m },
+            buildingsHeight = new decimal[] { 0m, 20m, 25m, 15m, 20m, 15m, 15m, 15m, 0m },
         };
     }
 }
@@ -105,7 +106,7 @@ public class UIData
     public decimal[] pipesRozbiory { get; set; } = new decimal[9];
     public decimal[] pipesInflows { get; set; } = new decimal[9];
     public decimal[] pipesOutflows { get; set; } = new decimal[9];
-    public bool[] kierunekPrzeplywu { get; set; } = new bool[9];
+    public bool[] flowDirection { get; set; } = new bool[9];
 
     public decimal[] nodesOutflow { get; set; } = new decimal[8];
 
