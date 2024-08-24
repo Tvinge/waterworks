@@ -7,9 +7,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-
-
-
 partial class CalculationTable : MonoBehaviour
 {
     [SerializeField] GameObject CalculationTableObject;
@@ -37,6 +34,7 @@ partial class CalculationTable : MonoBehaviour
         iterationManager = FindObjectOfType<IterationManager>();
 
         appLogic.updateDataVersion += OnDataUpdated;
+        appLogic.resetSimulation += ResetCalculationTable;
         iterationManager.updateIterationResultsData += OnIterationDataUpdated;
     }
 
@@ -62,7 +60,16 @@ partial class CalculationTable : MonoBehaviour
 
         UpdateCellText(verticalCellsCount, horizontalCellsCount, dataVersion, properties);
     }
-   
+   void ResetCalculationTable()
+    {
+        iterationTables.Clear();
+
+        for (int i = 0; i < CalculationTableObject.transform.GetChild(1).childCount; i++) 
+        {
+            Destroy(CalculationTableObject.transform.GetChild(1).GetChild(i).gameObject); 
+        }
+    }
+
     void TableSetupOnFirstDataChange(int verticalCellsCount, int horizontalCellsCount, PropertyInfo[] properties)
     {
         //RectTransform rectTransform = CalculationTableObject.GetComponent<RectTransform>();
@@ -103,19 +110,6 @@ partial class CalculationTable : MonoBehaviour
         int verticalCellsCount = 8;
         int horizontalCellsCount = allProperties.Length;
 
-        //if (ringDatas.Last().Iterations.Last().pipeCalculations.Last().finalVelocity != 0) //no matter which one
-        //{
-        //    allProperties[5] = type.GetProperty("finalVelocity");
-        //    horizontalCellsCount = allProperties.Length;
-        //}
-        //else
-        //{
-        //    horizontalCellsCount = allProperties.Length - 1;
-        //}
-
-
-        
-        //RectTransform calculationTableRectTransform = CalculationTableObject.GetComponent<RectTransform>();
         RectTransform newIterationTableRectTransform = newIterationTable.GetComponent<RectTransform>();
 
         int TableWidth = horizontalCellsCount * (int)cell.width;
