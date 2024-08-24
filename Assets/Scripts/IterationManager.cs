@@ -1,9 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Experimental.AI;
+using UnityEngine.UIElements;
 
 public class IterationManager : MonoBehaviour
 {
@@ -24,6 +24,13 @@ public class IterationManager : MonoBehaviour
     const decimal G = 9.80665m;
     //const decimal levelOfAccuracy = 0.5m;
     decimal V = 1.0m;
+    List<int> adjustedDiameterValuesCounterUp = Enumerable.Repeat(0, 9).ToList();
+    List<int> adjustedDiameterValuesCounterDown = Enumerable.Repeat(0, 9).ToList();
+    List<bool> unadjustableDiameterValuesMin = Enumerable.Repeat(false, 9).ToList(); 
+    List<bool> unadjustableDiameterValuesMax = Enumerable.Repeat(false, 9).ToList(); 
+
+
+
 
     private void Awake()
     {
@@ -32,6 +39,7 @@ public class IterationManager : MonoBehaviour
 
         dataLoader.updateCoefficientData += OnCoefficientDataUpdate;
         appLogic.updateDataVersion += OnDataUpdated;
+        appLogic.resetSimulation += Reset;
     }
 
     void OnCoefficientDataUpdate(DataLoader.CoefficientsData d)
@@ -42,7 +50,13 @@ public class IterationManager : MonoBehaviour
     {
         dataVersion = d;
     }
-
+    private void Reset()
+    {
+        adjustedDiameterValuesCounterUp = Enumerable.Repeat(0, 9).ToList();
+        adjustedDiameterValuesCounterDown = Enumerable.Repeat(0, 9).ToList();
+        unadjustableDiameterValuesMin = Enumerable.Repeat(false, 9).ToList();
+        unadjustableDiameterValuesMax = Enumerable.Repeat(false, 9).ToList();
+    }
     public void InvokeUpdateIteration()
     {
         PipeModellingHub();
@@ -71,31 +85,20 @@ public class IterationManager : MonoBehaviour
         
     }
 
-    void CalculateNextIterationUnlessConditionsAreMet(List<RingData> ringDatas, int pipeIndex)
+    public void CalculateNextIterationUnlessConditionsAreMet(List<RingData> ringDatas, int pipeIndex)
     {
         int iterationsCount = 1;
         int countOfadjustments = 0;
         int ringCount = ringDatas.Count;
+        List<List<bool>> conditions;
+        bool znak = true;
+        conditions = CheckValues(ringDatas);
 
         while (IsNextIterrationNeccesary(ringDatas) == true)
         {
-            List<int> adjustedDiameterValuesCounter = Enumerable.Repeat(0, 9).ToList();
-            bool znak = true;
-
-            // not necessary since iterations go to 0
-            //if (iterationsCount % 2 == 0) //adjusting pipe diameter every 2 iterations
-            //{
-            //    AdjustPipeDiameter(ringDatas, adjustedDiameterValuesCounter);
-            //    countOfadjustments++;
-            //    for (int j = 0; j < ringCount; j++)
-            //    {
-            //        RingData tempRingData = CalculateAdjustedFirstIteration(ringDatas[j]);
-            //        ringDatas[j].Iterations.Add(tempRingData.Iterations.Last());//get values from first iteration
-            //    }
-            //}
             if (iterationsCount > 20)
                 break;
-            else
+            else if (conditions[0].Any(c => !c))
             {
                 znak = false;
                 for (int j = 0; j < ringCount; j++)
@@ -103,19 +106,46 @@ public class IterationManager : MonoBehaviour
                     ringDatas[j].Iterations.Add(CalculateNextIteration(ringDatas[j], znak));
                 }
             }
+            //checks if all elements are true, and if any elements are false
+            else if (conditions[0].All(c => c) && conditions[1].Any(c => !c))
+            {
+                //increase d
+                AdjustPipeDiameter(ringDatas, ringCount, true);
+                //iterationsCount = 0;
+                for (int j = 0; j < ringCount; j++)
+                {
+                    RingData tempRingData = CalculateAdjustedFirstIteration(ringDatas[j]);
+                    ringDatas[j].Iterations.Add(tempRingData.Iterations.Last());//get values from first iteration
+                }
+            }
+            else if (conditions[0].All(c => c) && conditions[1].All(c => c) && conditions[2].Any(c => !c))
+            {
+                //decrese d
+                AdjustPipeDiameter(ringDatas, ringCount, false);
+                //iterationsCount = 0;
+                for (int j = 0; j < ringCount; j++)
+                {
+                    RingData tempRingData = CalculateAdjustedFirstIteration(ringDatas[j]);
+                    ringDatas[j].Iterations.Add(tempRingData.Iterations.Last());//get values from first iteration
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Check conditions for iterations, iteration: " + iterationsCount);
+            }
+
+
             SetDeltaDesignFlowForRing(ringDatas, pipesPerRing);
             CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipeIndex);
             iterationsCount++;
             Debug.Log("ITERATION: " + iterationsCount);
 
             CalculateIterationVelocity(ringDatas);
-            CheckValues(ringDatas);
-            if (IsNextIterrationNeccesary(ringDatas) == false)
-            {
-                Debug.Log("skibidi");
-            }
+            conditions = CheckValues(ringDatas);
+
             updateIterationResultsData?.Invoke(ringDatas);
         }
+        Debug.Log("skibidi");
     }
     void CalculateIterationVelocity(List<RingData> ringDatas)
     {
@@ -138,7 +168,7 @@ public class IterationManager : MonoBehaviour
         return pipe;
     }
     #region //meta iteration stuff
-    List<RingData> CreateRingDatas()
+    public List<RingData> CreateRingDatas()
     {
         //Hardcoded values for now, implement graphsearching algorithm for waterwork with dynamic amount of pipes and nodes.
 
@@ -166,7 +196,7 @@ public class IterationManager : MonoBehaviour
         return ringDatas;
     }
 
-    RingData CalculateFirstIteration(RingData ringData, int ringDataCounter)
+    public RingData CalculateFirstIteration(RingData ringData, int ringDataCounter)
     {
         List<RingData.PipeCalculation> pipeCalculations = new List<RingData.PipeCalculation>();
         RingData.IterationData iterationData;
@@ -217,7 +247,9 @@ public class IterationManager : MonoBehaviour
         RingData.IterationData iterationData;
         for (int i = 0; i < pipesPerRing; i++)
         {
-            Pipe pipe = ringData.PipesDictionary.ElementAt(i).Value;
+            //Pipe pipe = ringData.PipesDictionary.ElementAt(i).Value;
+            Pipe pipe = ringData.Pipes[i];
+
             if (pipeCalculations.Count < pipesPerRing)
             {
                 pipeCalculations.Add(CalculateIteration(pipe, ringData));
@@ -294,38 +326,104 @@ public class IterationManager : MonoBehaviour
 
     #endregion
     #region //iteration conditions etc
-    void AdjustPipeDiameter(List<RingData> ringDatas, List<int> adjustedValuesCounter)
+    void AdjustPipeDiameter(List<RingData> ringDatas, int ringCount, bool increase)
+    {
+        int indexOfmaxPipe = GetIndexOfPipeWithMaxVelocity(ringDatas);
+        int indexOfminPipe = GetIndexOfPipeWithMinVelocity(ringDatas);
+        if (increase == true)
+            AdjustPipeDiameterSmall(ringDatas, indexOfmaxPipe,adjustedDiameterValuesCounterUp, increase);
+        else
+            AdjustPipeDiameterSmall(ringDatas, indexOfminPipe,adjustedDiameterValuesCounterDown, increase);
+
+
+    }
+    void IsAdjustable (List<RingData> ringDatas, int index, bool increase)
+    {
+        foreach (var ringData in ringDatas)
+        {
+            foreach (var pipe in ringData.Pipes)
+            {
+                int closestIndex = FindClosestIndex(coefficientsData.diameter, pipe.diameter);
+
+                if (coefficientsData.diameter[closestIndex] == coefficientsData.diameter.Max() && increase == true)
+                {
+                    unadjustableDiameterValuesMin[index] = true;
+                }
+                    
+                if (coefficientsData.diameter[closestIndex] == coefficientsData.diameter.Min() && increase == false)
+                {
+                    unadjustableDiameterValuesMax[index] = true;
+                }
+            }
+        }
+    }
+    int GetIndexOfPipeWithMaxVelocity(List<RingData> ringDatas)
     {
         decimal maximalVelocity = 0;
         int indexOfmaxPipe = -1;
         foreach (var ringData in ringDatas)
         {
-            foreach (var pipe in ringData.Pipes)
+            foreach (var pipe in ringData.Iterations.Last().pipeCalculations)
             {
-                if (pipe.velocity > maximalVelocity)
+                if (pipe.finalVelocity > maximalVelocity)
                 {
-                    maximalVelocity = pipe.velocity;
-                    indexOfmaxPipe = pipe.index;
+                    maximalVelocity = pipe.finalVelocity;
+                    indexOfmaxPipe = pipe.Index;
                 }
             }
         }
-
-        adjustedValuesCounter[indexOfmaxPipe] += 1;//tracks count of adjustments for each pipe
-
+        return indexOfmaxPipe;
+    }
+    int GetIndexOfPipeWithMinVelocity(List<RingData> ringDatas)
+    {
+        decimal minimalVelocity = 10000000;
+        int indexOfminPipe = -1;
+        foreach (var ringData in ringDatas)
+        {
+            foreach (var pipe in ringData.Iterations.Last().pipeCalculations)
+            {
+                if (pipe.finalVelocity < minimalVelocity)
+                {
+                    minimalVelocity = pipe.finalVelocity;
+                    indexOfminPipe = pipe.Index;
+                }
+            }
+        }
+        return indexOfminPipe;
+    }
+    void AdjustPipeDiameterSmall(List<RingData> ringDatas, int index,List<int>adjusted, bool increase)
+    {
+        bool changeCounter = true;
         foreach (var ringData in ringDatas)
         {
             foreach (var pipe in ringData.Pipes)
             {
-                if (pipe.index == indexOfmaxPipe)
+                if (pipe.index == index)
                 {
-                    pipe.roundedDiameter = FindClosestValue(coefficientsData.diameter, pipe.diameter, adjustedValuesCounter[indexOfmaxPipe]);
-                    pipe.velocity = CalculateVelocityFlow(pipe);
+                    if (unadjustableDiameterValuesMax[index] == true && increase == true)
+                        break;
+                    if (unadjustableDiameterValuesMin[index] == true && increase == false)
+                        break;
+      
+                    decimal roundedDiameter = FindNextDiameter(coefficientsData.diameter, pipe.roundedDiameter, adjusted, index, increase);
+                    decimal velocity = CalculateVelocityFlow(pipe);
+
+                    ringData.Iterations.Last().pipeCalculations[index].Diameter = roundedDiameter;
+                    pipe.roundedDiameter = roundedDiameter;
+
+                    ringData.Iterations.Last().pipeCalculations[index].finalVelocity = velocity;
+                    pipe.velocity = velocity;
+
                     Debug.Log("adjusted pipe: " + pipe.index + " new diamater = " + pipe.roundedDiameter);
                 }
             }
         }
+        //if (increase == true && changeCounter == true)
+        //    adjustedDiameterValuesCounterUp[index] += 1;
+        //else if (increase == false && changeCounter == true)
+        //    adjustedDiameterValuesCounterDown[index] += 1;
     }
-    void CheckValues(List<RingData> ringDatas)
+    public List<List<bool>> CheckValues(List<RingData> ringDatas)
     {
         List<bool> sumOfHeadLossList = new List<bool>();//2 entries, each for one ring
         List<bool> headLossList = new List<bool>();//all pipes from both rings in one list
@@ -347,21 +445,15 @@ public class IterationManager : MonoBehaviour
             ringData.Iterations.Last().headlossList = headLossList;
             ringData.Iterations.Last().velocityList = velocityList;
         }
+        return new List<List<bool>> { sumOfHeadLossList, headLossList, velocityList };
     }
     bool IsNextIterrationNeccesary(List<RingData> ringDatas)
     {
-        List<bool> sumOfHeadlossList = new List<bool>();
-        List<bool> headlossList = new List<bool>();
-        List<bool> velocityList = new List<bool>();
+        List<bool> sumOfHeadlossList = ConditionsForIteration(ringDatas)[0];
+        List<bool> headlossList = ConditionsForIteration(ringDatas)[1];
+        List<bool> velocityList = ConditionsForIteration(ringDatas)[2];
 
-        foreach (var ringData in ringDatas)
-        {
-            sumOfHeadlossList.Add(ringData.Iterations.Last().sumOfHeadlossBool);
-            headlossList.AddRange(ringData.Iterations.Last().headlossList);
-            velocityList.AddRange(ringData.Iterations.Last().velocityList);
-        }
-
-        if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false))// || velocityList.Contains(false))
+        if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false) || velocityList.Contains(false))
         {
             return true; //next iteration is neccesary
         }
@@ -370,7 +462,6 @@ public class IterationManager : MonoBehaviour
             return false; //stop iterating
         }
     }
-
     bool IsSumOfHeadLossSmallerThanLevelOfAcurracy(List<RingData.PipeCalculation> pipeCalculations)
     {
         decimal headLossSum = pipeCalculations.Sum(pipeCalculations => pipeCalculations.HeadLoss);
@@ -462,7 +553,7 @@ public class IterationManager : MonoBehaviour
     }
     #endregion
     #region//Iteration minor calculations
-    Pipe FindPipesInMultipleRings(List<RingData> ringDatas)
+    public Pipe FindPipesInMultipleRings(List<RingData> ringDatas)
     {
         for (int i = 0; i < ringDatas.Count; i++)
         {
@@ -483,7 +574,7 @@ public class IterationManager : MonoBehaviour
         }
         return null;
     }
-    List<RingData> CalculateDeltaDesingFlowForPipesInMultipleRings(List<RingData> ringDatas, int i)
+    public List<RingData> CalculateDeltaDesingFlowForPipesInMultipleRings(List<RingData> ringDatas, int i)
     {
         var firstRing = ringDatas[0].Iterations.Last().pipeCalculations.Find(x => x.Index == i);
         var secondRing = ringDatas[1].Iterations.Last().pipeCalculations.Find(x => x.Index == i);
@@ -496,7 +587,7 @@ public class IterationManager : MonoBehaviour
 
         return ringDatas;
     }
-    void SetDeltaDesignFlowForRing(List<RingData> ringDatas, int pipesPerRing)
+    public void SetDeltaDesignFlowForRing(List<RingData> ringDatas, int pipesPerRing)
     {
         int ringCount = ringDatas.Count;
         for (int i = 0; i < ringCount; i++)
@@ -529,7 +620,6 @@ public class IterationManager : MonoBehaviour
         decimal iteratedDesignFlow = pipeCalculation.DesignFlow + pipeCalculation.DeltaDesignFlow;
         return iteratedDesignFlow;
     }
-
     decimal CalculateHeadLoss(Pipe pipe)
     {
         //dm3/s => m
@@ -546,7 +636,6 @@ public class IterationManager : MonoBehaviour
         decimal headLoss = pipe.kValue * (decimal)Mathf.Pow((float)pipe.designFlow, 2) / 1000000 * flowDirection;
         return headLoss;
     }
-
     int GetNumberSign(decimal number)
     {
         if (number > 0)
@@ -556,23 +645,18 @@ public class IterationManager : MonoBehaviour
         else
             return 0;
     }
-
-
-
     decimal CalculateHeadLoss(RingData.PipeCalculation pipeCalculation, bool flowDirection)
     {
         int flowDirectionInt = GetNumberSign(pipeCalculation.DesignFlow);
         decimal headLoss = pipeCalculation.KValue * (decimal)Mathf.Pow((float)pipeCalculation.DesignFlow, 2) / 1000000 * flowDirectionInt;
         return headLoss;
     }
-
     decimal CalculateQuotientOfHeadLossAndDesignFlow(RingData.PipeCalculation pipeCalculation) //moze iteration data?
     {
         decimal quotient = pipeCalculation.HeadLoss / pipeCalculation.DesignFlow;
 
         return quotient;
     }
-
     decimal CalculateDeltaFlow(List<RingData.PipeCalculation> pipeCalculations)
     {
         //var pipeCalculations = ringData.Iterations.Last().pipeCalculations;
@@ -598,7 +682,6 @@ public class IterationManager : MonoBehaviour
         }
         return closestIndex;
     }
-
     public static decimal FindClosestValue(decimal[] array, decimal x)
     {
         decimal closestValue = array[0];
@@ -615,24 +698,94 @@ public class IterationManager : MonoBehaviour
         }
         return closestValue;
     }
-    public decimal FindClosestValue(decimal[] array, decimal x, int timesOfAdjustingThisValue)
+    public decimal FindNextDiameter(decimal[] array, decimal roundedD, List<int> adjustedList, int index, bool increase)
     {
         decimal closestValue = array[0];
-        decimal smallestDifference = Math.Abs(x - closestValue);
+        decimal smallestDifference = Math.Abs(roundedD - closestValue);
+        decimal maxValue = array.Max();
+        decimal minValue = array.Min();
+        int timesOfAdjustingThisValue = adjustedList[index];
 
-        for (int i = 1; i < array.Length; i++)
-        {
-            decimal difference = Math.Abs(x - array[i]);
-            if (difference < smallestDifference)
-            {
-                smallestDifference = difference;
-                closestValue = array[i + timesOfAdjustingThisValue];
-            }
-        }
-        if (closestValue == array[0])
-        {
-            closestValue = array[timesOfAdjustingThisValue];
-        }
+        int inArrayIndex = Array.IndexOf(array, roundedD);
+
+        if (increase == true)
+            return array[inArrayIndex + 1];
+        else
+            return array[inArrayIndex - 1];
+
+
+
+        //if (increase == true)
+        //{
+        //    for (int i = 1; i < array.Length; i++)
+        //    {
+        //        decimal difference = Math.Abs(roundedD - array[i]);
+        //        if (difference < smallestDifference)
+        //        {
+        //            smallestDifference = difference;
+        //            if (array[i + timesOfAdjustingThisValue] == maxValue)
+        //            {
+        //                unadjustableDiameterValuesMax[index] = true;
+        //            }
+        //            if (difference == 0)
+        //                closestValue = array[i + timesOfAdjustingThisValue + 1];
+        //            else
+        //                closestValue = array[i + timesOfAdjustingThisValue];
+        //        }
+        //    }
+        //    if (closestValue == array.Last())
+        //        unadjustableDiameterValuesMin[index] = true;
+
+        //    adjustedDiameterValuesCounterUp = adjustedList;
+        //    adjustedDiameterValuesCounterUp[index]++;
+        //}
+        //else
+        //{
+        //    for (int i = array.Length - 1; i>= 0; i--)
+        //    {
+        //        decimal difference = Math.Abs(roundedD - array[i]);
+        //        if (difference < smallestDifference)
+        //        {
+        //            smallestDifference = difference;
+        //            if (array[i - timesOfAdjustingThisValue] == minValue)
+        //            {
+        //                unadjustableDiameterValuesMin[index] = true;
+        //            }
+        //            if (difference == 0)
+        //                closestValue = array[i - timesOfAdjustingThisValue - 1];
+        //            else
+        //                closestValue = array[i - timesOfAdjustingThisValue];
+        //        }
+        //    }
+        //    if (closestValue == array[0])
+        //        unadjustableDiameterValuesMin[index] = true;
+
+        //    adjustedDiameterValuesCounterDown = adjustedList;
+        //    adjustedDiameterValuesCounterDown[index]++;
+        //}
+
+        //if (closestValue == roundedD)
+        //{
+        //    if (increase == true)
+        //    {
+        //        adjustedDiameterValuesCounterUp = adjustedList;
+        //        adjustedDiameterValuesCounterUp[index]++;
+        //        closestValue = FindClosestValue(array, roundedD, adjustedDiameterValuesCounterUp, index, increase);
+        //    }
+        //    else
+        //    {
+
+        //        adjustedDiameterValuesCounterDown = adjustedList;
+        //        adjustedDiameterValuesCounterDown[index]++;
+        //        closestValue = FindClosestValue(array, roundedD, adjustedDiameterValuesCounterDown, index, increase);
+        //    }
+        //}
+
+
+        //if (closestValue == array[0])
+        //{
+        //    closestValue = array[timesOfAdjustingThisValue];
+        //}
 
         return closestValue;
     }
@@ -674,54 +827,25 @@ public class IterationManager : MonoBehaviour
         return znak;
     }
 
-
-    void cos(List<RingData> ringDatas)
+    List<List<bool>> ConditionsForIteration(List<RingData> ringDatas)
     {
+        List<bool> sumOfHeadlossList = new List<bool>();
+        List<bool> headlossList = new List<bool>();
+        List<bool> velocityList = new List<bool>();
+
         foreach (var ringData in ringDatas)
         {
-            Vector3 ringCenter = new Vector3();
-            Vector3 sumOfX = new Vector3();
-            Vector3 sumOfY = new Vector3();
-
-            foreach (var node in ringData.Nodes)
-            {
-                sumOfX.x += node.location.position.x;
-                sumOfX.y += node.location.position.y;
-            }
-            ringCenter.x = sumOfX.x / pipesPerRing;
-            ringCenter.y = sumOfY.y / pipesPerRing;
-            ringData.ringCenter = ringCenter;
-
-
-
-
-            for (int i = 0; i < ringData.pipesPerRing; i++)
-            {
-                var pos1X = ringData.Pipes[i].inflowNode.location.position.x;
-                var pos1Y = ringData.Pipes[i].inflowNode.location.position.y;
-
-                var pos2X = ringData.Pipes[i].outflowNode.location.position.x;
-                var pos2Y = ringData.Pipes[i].outflowNode.location.position.y;
-
-
-                if (pos1X < pos2X && pos1Y == pos2Y)
-                {
-                    //ringData.Pipes[i].flowDirection = 
-                }
-                if (pos1X > pos2X && pos1Y == pos2Y)
-                {
-
-                }
-                if (pos1X == pos2X && pos1Y < pos2Y)
-                {
-
-                }
-                if (pos1X == pos2X && pos1Y > pos2Y)
-                {
-
-                }
-            }
+            sumOfHeadlossList.Add(ringData.Iterations.Last().sumOfHeadlossBool);
+            headlossList.AddRange(ringData.Iterations.Last().headlossList);
+            velocityList.AddRange(ringData.Iterations.Last().velocityList);
         }
+
+        List<List<bool>> conditions = new List<List<bool>>();
+        conditions.Add(sumOfHeadlossList);
+        conditions.Add(headlossList);
+        conditions.Add(velocityList);
+
+        return conditions;
     }
     #endregion
 
