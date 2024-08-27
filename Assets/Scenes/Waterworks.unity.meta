@@ -1,6 +1,11 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Scenes/Waterworks.unity.meta
 guid: a18a934d89b77aa4daa1491af0c5189b
 DefaultImporter:
+========
+guid: 288e57999a2099d448d795593149d7c2
+TextScriptImporter:
+>>>>>>>> 115fc710aac487f2f58f8ac0c26fd6c7b5391466:Assets/ExcelStuff/Resources/lambdaCoefficient.csv.meta
   externalObjects: {}
   userData: 
   assetBundleName: 
