@@ -6,32 +6,36 @@ using UnityEngine.Events;
 using UnityEngine.UI;
 using System;
 using System.Reflection;
+using System.Linq;
 
 public class UIManager : MonoBehaviour
 {
     public Action updateDataset;
 
     AppLogic appLogic;
-    DataLoader dataLoader = DataLoader.Instance;
+    DataLoader dataLoader;
+    IterationManager iterationManager;
 
-    [SerializeField] GameObject wodociag;
+    [SerializeField] GameObject waterwork;
     [SerializeField] TMP_Dropdown dropdown;
     [SerializeField] TMP_Text updatedInfo;
     [SerializeField] Button button;
+    [SerializeField] GameObject CalculationTableObject;
 
-    [SerializeField] TMP_Text[] rozbioryNaOdcinkachText;
-    [SerializeField] TMP_Text[] rozbioryNaWezlachText;
-    [SerializeField] TMP_Text zasilanieZPompowniText;
-    [SerializeField] TMP_Text zasilanieZeZbiornikaText;
-    [SerializeField] TMP_Text[] wplywyNaOdcinkachText;
-    [SerializeField] TMP_Text[] wplywyNaWezlachText;
-    [SerializeField] TMP_Text[] odplywyNaOdcinkachText;
-    [SerializeField] TMP_Text[] odplywyNaWezlachText;
 
-    [SerializeField] Transform dzieckoZero;
-    [SerializeField] Transform dzieckoOne;
-    [SerializeField] Transform dzieckoDwa;
-    [SerializeField] Transform dzieckoWezel;
+    [SerializeField] TMP_Text[] consumptionsOnPipesText;
+    [SerializeField] TMP_Text[] consumptionsOnNodesText;
+    [SerializeField] TMP_Text supplyFromPumpStationText;
+    [SerializeField] TMP_Text supplyFromReservoirText;
+    [SerializeField] TMP_Text[] inflowsOnPipesText;
+    [SerializeField] TMP_Text[] inflowsOnNodesText;
+    [SerializeField] TMP_Text[] outflowsOnPipesText;
+    [SerializeField] TMP_Text[] outflowsOnNodesText;
+
+    [SerializeField] Transform childZero;
+    [SerializeField] Transform childOne;
+    [SerializeField] Transform childTwo;
+    [SerializeField] Transform childNode;
 
     private DataVersion previousDataVersion;
 
@@ -41,10 +45,15 @@ public class UIManager : MonoBehaviour
     private void Awake()
     {
         appLogic = FindObjectOfType<AppLogic>();
+        dataLoader = FindObjectOfType<DataLoader>();
+        iterationManager = FindObjectOfType<IterationManager>();
+
         appLogic.updateDataVersion += OnDataUpdated;
         appLogic.resetSimulation += ResetUI;
+        iterationManager.updateIterationResultsData += UpdateResultsOfIteration;
         //appLogic.updateUIData += OnDataUpdated;
         previousDataVersion = default(DataVersion);
+
 
     }
 
@@ -57,18 +66,62 @@ public class UIManager : MonoBehaviour
         dropdown.ClearOptions();
         dropdown.AddOptions(dropdownMenuOptions);
     }
+    void UpdateResultsOfIteration(List<RingData> ringDatas)
+    {
+        ResetUI();
+        Debug.Log("update iteration results UImanager");
 
+        decimal[] nodesOutflows = new decimal[8];
+        decimal[] nodesConsumption = new decimal[8];
+        decimal[] pipesInflows = new decimal[9];
+        decimal[] pipesOutflows = new decimal[9];
+        decimal[] pipesConsumption = new decimal[9];
+        decimal[][] doubleInflowsOnPipes = new decimal[9][];
+        bool[] flowDirection = new bool[9];
+
+
+        foreach (var ringData in ringDatas)
+        {
+            foreach (var pipe in ringData.Pipes)
+            {
+                pipesInflows[pipe.index] = pipe.inflow;
+                pipesOutflows[pipe.index] = pipe.outflow;
+                pipesConsumption[pipe.index] = pipe.consumption;
+                flowDirection[pipe.index] = pipe.flowDirection;
+            }
+            foreach (var node in ringData.Nodes)
+            {
+                nodesOutflows[node.index] = node.outflow;
+                nodesConsumption[node.index] = node.consumption;
+           
+            }
+        }
+
+        for (int i = 0; i < doubleInflowsOnPipes.Length; i++)
+        {
+         
+            doubleInflowsOnPipes[i] = new decimal[2];
+        }
+
+
+        SetConsumptionValues(nodesConsumption, pipesConsumption);
+        UpdateOutflowsOnNodes(nodesOutflows);
+        UpdatePipesOutflow(pipesOutflows, flowDirection);
+        UpdateInflowValues(pipesOutflows, pipesInflows, doubleInflowsOnPipes, flowDirection);
+
+        //previousDataVersion = d;
+    }
     void ResetUI()
     {
-        for (int i = 0; i < odplywyNaOdcinkachText.Length; i++)
+        for (int i = 0; i < outflowsOnPipesText.Length; i++)
         {
-            if (odplywyNaOdcinkachText[i] != null)
+            if (outflowsOnPipesText[i] != null)
             {
-                odplywyNaOdcinkachText[i].color = Color.white;
+                outflowsOnPipesText[i].color = Color.white;
             }
-            if (wplywyNaOdcinkachText[i] != null)
+            if (inflowsOnPipesText[i] != null)
             {
-                wplywyNaOdcinkachText[i].color = Color.white;
+                inflowsOnPipesText[i].color = Color.white;
             }
         }
     }
@@ -88,117 +141,138 @@ public class UIManager : MonoBehaviour
             dropdown.ClearOptions();
             dropdown.AddOptions(dropdownMenuOptions);
         }
-
+        ResetUI();
         Debug.Log("dataevent in UImanager");
-        PrzypiszWartosciRozbiorow(d.nodesRozbiory, d.pipesRozbiory);
+        SetConsumptionValues(d.nodesConsumptions, d.pipesConsumptions);
         UpdateOutflowsOnNodes(d.nodesOutflows);
-        UpdatePipesOutflow(d.pipesOutflows, d.kierunekPrzeplywu);
-        UpdateInflowValues(d.pipesOutflows, d.pipesInflows, d.doubleInflowsOnPipes, d.kierunekPrzeplywu);
+        UpdatePipesOutflow(d.pipesOutflows, d.flowDirection);
+        UpdateInflowValues(d.pipesOutflows, d.pipesInflows, d.doubleInflowsOnPipes, d.flowDirection);
 
         previousDataVersion = d;
     }
 
-    void AssignChildTransform(int Index)
+    void AssignChildTransform(int index)
     {
-        dzieckoZero = GetComponent<Transform>().GetChild(1).GetChild(0).GetChild(Index).GetChild(0).GetChild(0).GetChild(0);
-        dzieckoOne = GetComponent<Transform>().GetChild(1).GetChild(0)?.GetChild(Index)?.GetChild(0)?.GetChild(1)?.GetChild(0);
-        dzieckoDwa = GetComponent<Transform>().GetChild(1).GetChild(0).GetChild(Index).GetChild(0).GetChild(2).GetChild(0);
+        childZero = GetComponent<Transform>().GetChild(1).GetChild(0).GetChild(index).GetChild(0).GetChild(0).GetChild(0);
+        childOne = GetComponent<Transform>().GetChild(1).GetChild(0)?.GetChild(index)?.GetChild(0)?.GetChild(1)?.GetChild(0);
+        childTwo = GetComponent<Transform>().GetChild(1).GetChild(0).GetChild(index).GetChild(0).GetChild(2).GetChild(0);
     }
 
-    void AssignChildTransform(int Index, string node)
+    void AssignChildTransform(int index, string node)
     {
-        dzieckoWezel = GetComponent<Transform>().GetChild(1).GetChild(1).GetChild(Index).GetChild(2).GetChild(0);
+        childNode = GetComponent<Transform>().GetChild(1).GetChild(1).GetChild(index).GetChild(2).GetChild(0);
     }
 
     //przypisywanie wartosci wplywow na odcinkach
-    public void UpdateInflowValues(decimal[] pipesOutflows, decimal[] pipesInflows, decimal[][] doubleInFlowsOnPipes, bool[] kierunekPrzeplywu)
+    public void UpdateInflowValues(decimal[] pipesOutflows, decimal[] pipesInflows, decimal[][] doubleInFlowsOnPipes, bool[] flowDirection)
     {
+        inflowsOnPipesText = new TMP_Text[pipesOutflows.Length];
+
         for (int pipeIndex = 0; pipeIndex < pipesOutflows.Length; pipeIndex++)
         {
             AssignChildTransform(pipeIndex);
             if (pipesOutflows[pipeIndex] != 0)
             {
-                if (kierunekPrzeplywu[pipeIndex] == true)
+                if (flowDirection[pipeIndex] == true)
                 {
-                    wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-                    wplywyNaOdcinkachText[pipeIndex].text = pipesInflows[pipeIndex].ToString("f2");
+                    inflowsOnPipesText[pipeIndex] = childZero.GetComponent<TMP_Text>();
+                    inflowsOnPipesText[pipeIndex].text = pipesInflows[pipeIndex].ToString("f2");
                 }
-                else if (kierunekPrzeplywu[pipeIndex] == false)
+                else if (flowDirection[pipeIndex] == false)
                 {
-                    wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-                    wplywyNaOdcinkachText[pipeIndex].text = pipesInflows[pipeIndex].ToString("f2");
+                    inflowsOnPipesText[pipeIndex] = childTwo.GetComponent<TMP_Text>();
+                    inflowsOnPipesText[pipeIndex].text = pipesInflows[pipeIndex].ToString("f2");
                 }
             }
             else if (pipesOutflows[pipeIndex] == 0)
             {
-                if (kierunekPrzeplywu[pipeIndex] == true)
+                if (flowDirection[pipeIndex] == true)
                 {
-                    wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][0].ToString("f2");
+                    inflowsOnPipesText[pipeIndex] = childZero.GetComponent<TMP_Text>();
+                    inflowsOnPipesText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][0].ToString("f2");
 
-                    wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][1].ToString("f2");
+                    inflowsOnPipesText[pipeIndex] = childTwo.GetComponent<TMP_Text>();
+                    inflowsOnPipesText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][1].ToString("f2");
                 }
-                else if (kierunekPrzeplywu[pipeIndex] == false)
+                else if (flowDirection[pipeIndex] == false)
                 {
-                    wplywyNaOdcinkachText[pipeIndex] = dzieckoZero.GetComponent<TMP_Text>();
-                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][1].ToString("f2");
+                    inflowsOnPipesText[pipeIndex] = childZero.GetComponent<TMP_Text>();
+                    inflowsOnPipesText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][1].ToString("f2");
 
-                    wplywyNaOdcinkachText[pipeIndex] = dzieckoDwa.GetComponent<TMP_Text>();
-                    wplywyNaOdcinkachText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][0].ToString("f2");
+                    inflowsOnPipesText[pipeIndex] = childTwo.GetComponent<TMP_Text>();
+                    inflowsOnPipesText[pipeIndex].text = doubleInFlowsOnPipes[pipeIndex][0].ToString("f2");
                 }
             }
         }
     }
 
     //przypisywanie wartosci rozbiorow na odcinkach
-    public void PrzypiszWartosciRozbiorow(decimal[] nodesRozbiory, decimal[] pipesRozbiory)
+    public void SetConsumptionValues(decimal[] nodesConsumptions, decimal[] pipesConsumptions)
     {
+        consumptionsOnNodesText = new TMP_Text[nodesConsumptions.Length];
+        consumptionsOnPipesText = new TMP_Text[pipesConsumptions.Length];
+
         string node = "wezelek";
-        for (int i = 0; i < nodesRozbiory.Length; i++)
+        for (int i = 0; i < nodesConsumptions.Length; i++)
         {
             AssignChildTransform(i, node);
-            rozbioryNaWezlachText[i] = dzieckoWezel.GetComponent<TMP_Text>();
-            rozbioryNaWezlachText[i].text = nodesRozbiory[i].ToString("f2");
-            rozbioryNaWezlachText[i].color = Color.red;
+            consumptionsOnNodesText[i] = childNode.GetComponent<TMP_Text>();
+            consumptionsOnNodesText[i].text = nodesConsumptions[i].ToString("f2");
+            consumptionsOnNodesText[i].color = Color.red;
         }
-        for (int i = 0; i < pipesRozbiory.Length; i++)
+        for (int i = 0; i < pipesConsumptions.Length; i++)
         {
             AssignChildTransform(i);
-            rozbioryNaOdcinkachText[i] = dzieckoOne.GetComponent<TMP_Text>();
-            rozbioryNaOdcinkachText[i].text = pipesRozbiory[i].ToString("f2");
-            rozbioryNaOdcinkachText[i].color = Color.red;
+            consumptionsOnPipesText[i] = childOne.GetComponent<TMP_Text>();
+            consumptionsOnPipesText[i].text = pipesConsumptions[i].ToString("f2");
+            consumptionsOnPipesText[i].color = Color.red;
         }
     }
 
     //przypisywanie wartosci odplywow na odcinkach
-    public void UpdatePipesOutflow(decimal[] pipesOutflows, bool[] kierunekPrzeplywu)
+    public void UpdatePipesOutflow(decimal[] pipesOutflows, bool[] flowDirection)
     {
         for(int i = 0; i < pipesOutflows.Length; i++)
         {
             AssignChildTransform(i);
+            outflowsOnPipesText = new TMP_Text[pipesOutflows.Length];
             if (pipesOutflows[i] != 0)
             {
-                if (kierunekPrzeplywu[i] == true)
+                if (flowDirection[i] == true)
                 {
-                    odplywyNaOdcinkachText[i] = dzieckoDwa.GetComponent<TMP_Text>();
+                    outflowsOnPipesText[i] = childTwo.GetComponent<TMP_Text>();
                 }
-                else if (kierunekPrzeplywu[i] == false)
+                else if (flowDirection[i] == false)
                 {
-                    odplywyNaOdcinkachText[i] = dzieckoZero.GetComponent<TMP_Text>();
+                    outflowsOnPipesText[i] = childZero.GetComponent<TMP_Text>();
                 }
-                odplywyNaOdcinkachText[i].text = pipesOutflows[i].ToString("f2");
-                odplywyNaOdcinkachText[i].color = Color.green;
+                outflowsOnPipesText[i].text = pipesOutflows[i].ToString("f2");
+                outflowsOnPipesText[i].color = Color.green;
             }
         }
     }
 
     public void UpdateOutflowsOnNodes(decimal[] nodesOutflow)
     {
-        updatedInfo.text = "rozbiory na wezlach: ";
+        updatedInfo.text = "click r to reset \noutflows on nodes: ";
         for (int nodeIndex = 0; nodeIndex < nodesOutflow.Length; nodeIndex++)
         {
-            updatedInfo.text = updatedInfo.text + $"\nOdplyw z wezla {nodeIndex}:  {nodesOutflow[nodeIndex].ToString("f2")}";
+            updatedInfo.text = updatedInfo.text + $"\nOutflow on node {nodeIndex}:  {nodesOutflow[nodeIndex].ToString("f2")}";
         }
     }
+
+    public void OpenCalculationTable()
+    {
+        bool isActive = CalculationTableObject.activeSelf;
+
+        if (isActive == true)
+        {
+            CalculationTableObject.SetActive(false);
+        }
+        else
+        {
+            CalculationTableObject.SetActive(true);
+        }
+    }
+
 }

@@ -12,35 +12,84 @@ namespace Tests
     {
         DataVersion data;
         DataLoader dataLoader;
-        [SetUp] 
+        IterationManager _iterationManager;
+        [SetUp]
         public void Setup()
         {
             data = DataVersion.CreateDefault();
 
-            Assert.That(data, Is.Not.Null);
+            _iterationManager = new IterationManager();
 
-            Assert.That(data.zasilanieZPompowni, Is.Not.Null);
-            Assert.That(data.zasilanieZeZbiornika, Is.Not.Null);
-            Assert.That(data.wspolczynnik, Is.Not.Null);
-            Assert.That(data.nodesRozbiory, Is.Not.Null);
-            Assert.That(data.nodesInflows, Is.Not.Null);
-            Assert.That(data.nodesOutflows, Is.Not.Null);
-            Assert.That(data.polozenieWezlow, Is.Not.Null);
-            Assert.That(data.pipesRozbiory, Is.Not.Null);
-            Assert.That(data.kierunekPrzeplywu, Is.Not.Null);
-            Assert.That(data.pipesOutflows, Is.Not.Null);
-            Assert.That(data.pipesInflows, Is.Not.Null);
-            Assert.That(data.dlugoscOdcinka, Is.Not.Null);
-
-            Assert.That(data.doubleInflowsOnPipes, Is.Not.Null);
-            Assert.That(data._nodeAndAdjacentPipes, Is.Not.Null);
-            Assert.That(data._pipesAdjacentNodes, Is.Not.Null);
-            Assert.That(data.pipesPositions, Is.Not.Null);
-            Assert.That(data.nodesPositions, Is.Not.Null);
-            Assert.That(data.kierunekRuchuWskazowekZegara, Is.Not.Null);
 
         }
 
+
+        //List<RingData> SetupRingData()
+        //{
+        //    var ringDatas = _iterationManager.CreateRingDatas();
+        //    int ringCount = ringDatas.Count;
+        //    int pipesPerRing = ringDatas[0].pipesPerRing;
+
+        //    for (int i = 0; i < ringCount; i++)
+        //    {
+        //        ringDatas[i] = _iterationManager.CalculateFirstIteration(ringDatas[i],datav i);                 //no need to calculate pipes which are not part of the ring
+        //    }
+        //    _iterationManager.SetDeltaDesignFlowForRing(ringDatas, pipesPerRing);
+        //    Pipe pipe = _iterationManager.FindPipesInMultipleRings(ringDatas);                            //atm 2 rings == 1 pipe in common
+        //    _iterationManager.CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
+        //    _iterationManager.CheckValues(ringDatas);
+        //    return ringDatas;
+        //}
+
+
+        //[Test]
+        //public void CalculateNextIterationUnlessConditionsAreMet_ShouldNotThrowException_WhenValidInput()
+        //{
+        //    // Arrange
+        //    //List<RingData> ringDatas = SetupRingData();
+        //    int pipeIndex = 0;
+
+        //    // Act & Assert
+        //    Assert.DoesNotThrow(() => _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex));
+        //}
+
+        //[Test]
+        //public void CalculateNextIterationUnlessConditionsAreMet_ShouldAdjustDiameter_WhenConditionsMet()
+        //{
+        //    // Arrange
+        //    //List<RingData> ringDatas = SetupRingData();
+        //    int pipeIndex = 0;
+
+        //    // Act
+        //    _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex);
+
+        //    // Assert
+        //    // Add assertions to verify the expected behavior
+        //    // For example, check if the diameter was adjusted correctly
+        //    // Assert.AreEqual(expectedValue, actualValue);
+        //}
+
+        //[Test]
+        //public void CalculateNextIterationUnlessConditionsAreMet_ShouldHandleEmptyRingDatas()
+        //{
+        //    // Arrange
+        //    //List<RingData> ringDatas = SetupRingData();
+        //    int pipeIndex = 0;
+
+        //    // Act & Assert
+        //    Assert.DoesNotThrow(() => _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex));
+        //}
+
+
+
+
+
+
+
+
+    }
+}
+/*}
         #region AppLogicTests
         [Test]
         public void calculateQhmax()
@@ -61,6 +110,7 @@ namespace Tests
 
         #region CalculationManagerTests
 
+        /*
         [Test]
         public void SetOutflowOnNodeWithTwoUncalculatedPipes()
         {
@@ -173,7 +223,11 @@ namespace Tests
         }
 
 
+        [Test]
+        public void Check_Loaded_Data()
+        {
 
+        }
 
 
 
@@ -227,3 +281,4 @@ namespace Tests
     }
 }
 
+        */

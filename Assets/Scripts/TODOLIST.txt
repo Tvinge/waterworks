@@ -3,5 +3,6 @@ Dictionaries
 https://iigw.pl/new/strony/slownik.htm
 https://static.lexicool.com/dictionary/XS9RV511021.pdf
 
-
-Random data generator
+graphsearch for rings 
+dynamic rings, pipes and nodes
+https://www.researchgate.net/publication/220748191_Dynamic_Rings_Pipes_and_Nodes

@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class DataLoader
+public class DataLoader : MonoBehaviour
 {
+    /*
     // Static variable that holds the single instance of the class
     private static DataLoader instance;
     // Private constructor prevents instantiation from other classes
@@ -21,7 +22,7 @@ public class DataLoader
             return instance;
         }
     }
-
+    */
     public Action<CoefficientsData> updateCoefficientData;
 
     public int setsOfData = 16;
@@ -49,6 +50,7 @@ public class DataLoader
         public decimal[] opornoscC;
         public decimal[] przeplywnoscM;
     }
+
     [System.Serializable]
     public class CoefficientsList
     {
@@ -62,17 +64,17 @@ public class DataLoader
     {
 
         public int dataset;
-        public decimal zasilanieZPompowni;
-        public decimal wspolczynnik;
+        public decimal supplyFromPumpStation;
+        public decimal coefficient;
 
         [Header("Node")]
         public int[] nodeID;
-        public decimal[] nodeRozbiory;
+        public decimal[] nodesConsumptions;
         public decimal[] nodeHeight;
 
         [Header("Pipe")]
         public int[] pipeID;
-        public decimal[] pipeRozbiory;
+        public decimal[] pipesConsumptions;
         public decimal[] pipeLength;
         public int[] pipeHeight;
     }
@@ -118,12 +120,12 @@ public class DataLoader
         DataSet dataSet = new DataSet();
         dataSet = myDataSetList.dataSet[DataVersionIndex];
         
-        dataVersion.zasilanieZPompowni = dataSet.zasilanieZPompowni;
-        dataVersion.wspolczynnik = dataSet.wspolczynnik;
-        dataVersion.nodesRozbiory = dataSet.nodeRozbiory;
-        dataVersion.pipesRozbiory = dataSet.pipeRozbiory;
-        //Debug.Log($" pipeV: {dataVersion.pipesRozbiory} node: {dataVersion.nodesRozbiory}");
-        //Debug.Log($" pipeS: {dataSet.pipeRozbiory} node: {dataSet.nodeRozbiory}");
+        dataVersion.supplyFromPumpStation = dataSet.supplyFromPumpStation;
+        dataVersion.coefficient = dataSet.coefficient;
+        dataVersion.nodesConsumptions = dataSet.nodesConsumptions;
+        dataVersion.pipesConsumptions = dataSet.pipesConsumptions;
+        dataVersion.pipesLength = dataSet.pipeLength;
+        
         return dataVersion;
     }
 
@@ -143,18 +145,18 @@ public class DataLoader
             if (i == 0)
             {
                 m[i].dataset = int.Parse(data[pipeColumns * (i + 1)]);
-                m[i].zasilanieZPompowni = decimal.Parse(data[pipeColumns * (i + 1) + 5]);
-                m[i].wspolczynnik = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
+                m[i].supplyFromPumpStation = decimal.Parse(data[pipeColumns * (i + 1) + 5]);
+                m[i].coefficient = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
 
                 m[i].pipeID = new int[pipeCount];
-                m[i].pipeRozbiory = new decimal[pipeCount];
+                m[i].pipesConsumptions = new decimal[pipeCount];
                 m[i].pipeLength = new decimal[pipeCount];
                 m[i].pipeHeight = new int[pipeCount];
 
                 for (int j = 0; j < pipeCount; j++)
                 {
                     m[i].pipeID[j] = int.Parse(data[pipeColumns * (i + j + 1) + 1]);
-                    m[i].pipeRozbiory[j] = decimal.Parse(data[pipeColumns * (i + j + 1) + 2]);
+                    m[i].pipesConsumptions[j] = decimal.Parse(data[pipeColumns * (i + j + 1) + 2]);
                     m[i].pipeLength[j] = decimal.Parse(data[pipeColumns * (i + j + 1) + 3]);
                     m[i].pipeHeight[j] = int.Parse(data[pipeColumns * (i + j + 1) + 4]);
                 }
@@ -163,18 +165,18 @@ public class DataLoader
             {
                 m[i / pipeCount] = new DataSet();
                 m[i / pipeCount].dataset = int.Parse(data[pipeColumns * (i + 1)]);
-                m[i / pipeCount].zasilanieZPompowni = decimal.Parse(data[pipeColumns * (i + 1) + 5]);
-                m[i / pipeCount].wspolczynnik = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
+                m[i / pipeCount].supplyFromPumpStation = decimal.Parse(data[pipeColumns * (i + 1) + 5]);
+                m[i / pipeCount].coefficient = decimal.Parse(data[pipeColumns * (i + 1) + 6]);
 
                 m[i / pipeCount].pipeID = new int[pipeCount];
-                m[i / pipeCount].pipeRozbiory = new decimal[pipeCount];
+                m[i / pipeCount].pipesConsumptions = new decimal[pipeCount];
                 m[i / pipeCount].pipeLength = new decimal[pipeCount];
                 m[i / pipeCount].pipeHeight = new int[pipeCount];
 
                 for (int j = 0; j < pipeCount; j++)
                 {
                     m[i / pipeCount].pipeID[j] = int.Parse(data[pipeColumns * (i + j + 1) + 1]);
-                    m[i / pipeCount].pipeRozbiory[j] = decimal.Parse(data[pipeColumns * (i + j + 1) + 2]);
+                    m[i / pipeCount].pipesConsumptions[j] = decimal.Parse(data[pipeColumns * (i + j + 1) + 2]);
                     m[i / pipeCount].pipeLength[j] = decimal.Parse(data[pipeColumns * (i + j + 1) + 3]);
                     m[i / pipeCount].pipeHeight[j] = int.Parse(data[pipeColumns * (i + j + 1) + 4]);
                 }
@@ -199,13 +201,13 @@ public class DataLoader
                 m[i].dataset = int.Parse(data[nodeColumns * (i + 1)]);
 
                 m[i].nodeID = new int[nodeCount];
-                m[i].nodeRozbiory = new decimal[nodeCount];
+                m[i].nodesConsumptions = new decimal[nodeCount];
                 m[i].nodeHeight = new decimal[nodeCount];
 
                 for (int j = 0; j < nodeCount; j++)
                 {
                     m[i].nodeID[j] = int.Parse(data[nodeColumns * (i + j + 1) + 1]);
-                    m[i].nodeRozbiory[j] = decimal.Parse(data[nodeColumns * (i + j + 1) + 2]);
+                    m[i].nodesConsumptions[j] = decimal.Parse(data[nodeColumns * (i + j + 1) + 2]);
                     m[i].nodeHeight[j] = decimal.Parse(data[nodeColumns * (i + j + 1) + 3]);
                 }
             }
@@ -214,13 +216,13 @@ public class DataLoader
                 m[i / nodeCount].dataset = int.Parse(data[nodeColumns * (i + 1)]);
 
                 m[i / nodeCount].nodeID = new int[nodeCount];
-                m[i / nodeCount].nodeRozbiory = new decimal[nodeCount];
+                m[i / nodeCount].nodesConsumptions = new decimal[nodeCount];
                 m[i / nodeCount].nodeHeight = new decimal[nodeCount];
 
                 for (int j = 0; j < nodeCount; j++)
                 {
                     m[i / nodeCount].nodeID[j] = int.Parse(data[nodeColumns * (i + j + 1) + 1]);
-                    m[i / nodeCount].nodeRozbiory[j] = decimal.Parse(data[nodeColumns * (i + j + 1) + 2]);
+                    m[i / nodeCount].nodesConsumptions[j] = decimal.Parse(data[nodeColumns * (i + j + 1) + 2]);
                     m[i / nodeCount].nodeHeight[j] = decimal.Parse(data[nodeColumns * (i + j + 1) + 3]);
                 }
             }
