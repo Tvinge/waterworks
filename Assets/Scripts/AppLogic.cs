@@ -9,38 +9,78 @@ using UnityEngine.PlayerLoop;
 public class AppLogic : MonoBehaviour
 {
     public Action<DataVersion> updateDataVersion;
+    public Action<DataVersions> updateDataVersions;
     //public Action<DataVersion> updateDataSet;
 
     //public Action updateUIData;
-    public Action calculateWaterDistribution;
+    public Action<DataVersion> calculateWaterDistribution;
     public Action iterateWaterDistribution;
     public Action initializeDictionaries;
     public Action resetSimulation;
 
-    DataVersion dataVersion = new DataVersion();
     DataVersion defaultDataVersion = DataVersion.CreateDefault();
-    List<DataVersion> dataVersions = new List<DataVersion>();
+    DataVersion dataVersion = new DataVersion();
+    DataVersions dataVersions = new DataVersions();
+
+    DataVersion maxDataVersion;
+    DataVersion minDataVersion;
+    DataVersion maxFireDataVersion;
+
+    //List<DataVersion> dataVersions = new List<DataVersion>();
 
     List<int> nodesWithOutflowsOnStart = new List<int>();
 
+    private bool isFirstMinCalculation = true;
     private void Awake()
     {
         DeclareInflowArray();
-        UstalWskazowkiZegara(defaultDataVersion);
+        SetClockDirection(defaultDataVersion);
         InitializePositions();
 
         updateDataVersion += OnDataUpdated;
     }
     void Start()
     {
-        CalculateQzbiornika(defaultDataVersion);
-        ZasilanieZPompowniZbiornika(defaultDataVersion);
+        defaultDataVersion.Pipes.Clear();
+        defaultDataVersion.Nodes.Clear();
+
+        CalculateSupplyFromReservoir(defaultDataVersion);
+        SetOutflowsFromPumpStationAndReservoir(defaultDataVersion);
         InflowOnPipesFromStartingFullNodes(defaultDataVersion);
         FindNearbyUIElements(defaultDataVersion);
         TransferUIElementsToData(defaultDataVersion); //TODO: create data, than UI elements
         GetNodesWithOutflowOnStart(defaultDataVersion);
+
+
+
+        maxDataVersion = defaultDataVersion;
+        minDataVersion = defaultDataVersion;
+
+        //maxDataVersion = defaultDataVersion.DeepCopy();
+        //minDataVersion = defaultDataVersion.DeepCopy();
+        //maxFireDataVersion = defaultDataVersion.DeepCopy();
+
+        //dataVersions.maxDataVersion = maxDataVersion;
+        //dataVersions.minDataVersion = minDataVersion;
+        //dataVersions.maxFireDataVersion = maxFireDataVersion;
+        //dataVersions.defaultDataVersion = defaultDataVersion;
+
         updateDataVersion?.Invoke(defaultDataVersion);
+
     }
+
+    void CalculateQForMin()
+    {
+        foreach (var node in minDataVersion.Nodes)
+        {
+            node.consumption = maxDataVersion.nodesConsumptions[node.index] / minDataVersion.coefficient;
+        }
+        foreach (var pipe in minDataVersion.Pipes)
+        {
+            pipe.consumption = maxDataVersion.pipesConsumptions[pipe.index] / minDataVersion.coefficient;
+        }
+    }
+
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.R))
@@ -59,11 +99,38 @@ public class AppLogic : MonoBehaviour
             }
         }
     }
-    public void CalculateWaterDistributionButton()
+    public void CalculateMaxWaterDistributionButton()
     {
-        calculateWaterDistribution?.Invoke();
-        updateDataVersion?.Invoke(defaultDataVersion);
+        calculateWaterDistribution?.Invoke(maxDataVersion);
+        updateDataVersion?.Invoke(maxDataVersion);
     }
+    public void CalculateMinWDButton()
+    {
+
+        int nodeCount = 0;
+        int pipeCount = 0;
+        //if (isFirstMinCalculation == true)
+        {
+            foreach (var node in minDataVersion.Nodes)
+            {
+                node.consumption = maxDataVersion.nodesConsumptions[node.index] / minDataVersion.coefficient;
+                minDataVersion.nodesConsumptions[node.index] = node.consumption;
+                nodeCount++;
+            }
+            foreach (var pipe in minDataVersion.Pipes)
+            {
+                pipe.consumption = maxDataVersion.pipesConsumptions[pipe.index] / minDataVersion.coefficient;
+                minDataVersion.pipesConsumptions[pipe.index] = pipe.consumption;
+                minDataVersion.flowDirection[pipe.index] = true;
+                pipeCount++;
+            }
+            minDataVersion.nodesOutflows[7] = 0;
+            isFirstMinCalculation = false;
+        }
+        calculateWaterDistribution?.Invoke(minDataVersion);
+        updateDataVersion?.Invoke(minDataVersion);
+    }
+
     void FindNearbyUIElements(DataVersion data)
     {
         data._nodeAndAdjacentPipes.Clear();
@@ -88,13 +155,13 @@ public class AppLogic : MonoBehaviour
 
     void OnDataUpdated(DataVersion d)
     {
-        if (d.coefficient != defaultDataVersion.coefficient || d.zasilanieZPompowni != defaultDataVersion.zasilanieZPompowni)
+        if (d.coefficient != defaultDataVersion.coefficient || d.supplyFromPumpStation != defaultDataVersion.supplyFromPumpStation)
         {
 
             defaultDataVersion.coefficient = d.coefficient;
-            defaultDataVersion.zasilanieZPompowni = d.zasilanieZPompowni;
-            defaultDataVersion.nodesRozbiory = d.nodesRozbiory;
-            defaultDataVersion.pipesRozbiory = d.pipesRozbiory;
+            defaultDataVersion.supplyFromPumpStation = d.supplyFromPumpStation;
+            defaultDataVersion.nodesConsumptions = d.nodesConsumptions;
+            defaultDataVersion.pipesConsumptions = d.pipesConsumptions;
             defaultDataVersion.pipesLength = d.pipesLength;
 
             //tutaj dodac reszte zapisywanek po dodaniu kolejnych wartoœci w clasie dataversion
@@ -103,39 +170,48 @@ public class AppLogic : MonoBehaviour
     }
 
     #region
-    public static decimal CalculateQzbiornika(DataVersion data)
+    public static decimal CalculateSupplyFromReservoir(DataVersion data)
     {
-        data.zasilanieZeZbiornika = CalculateQhmax(data) - data.zasilanieZPompowni;
-        return data.zasilanieZeZbiornika;
+        decimal consumptionOnRings = CalculateQhmax(data); 
+        if (consumptionOnRings > data.supplyFromPumpStation)
+            data.supplyFromReservoir = consumptionOnRings - data.supplyFromPumpStation ;
+        else
+            data.supplyFromReservoir = 0;
+
+        return data.supplyFromReservoir;
     }
 
     public static decimal CalculateQhmax(DataVersion data)
     {
         decimal value = 0;
 
-        foreach (decimal i in data.pipesRozbiory)
+        foreach (decimal i in data.pipesConsumptions)
         {
             value += i;
         }
 
-        foreach (decimal i in data.nodesRozbiory)
+        foreach (decimal i in data.nodesConsumptions)
         {
             value += i;
         }
         return value;
     }
 
-    decimal[] ZasilanieZPompowniZbiornika(DataVersion data)
+    decimal[] SetOutflowsFromPumpStationAndReservoir(DataVersion data)
     {
         int p = 0;
         int zPipe = data.pipesLength.Length - 1;
         int zNode = data.nodesHeight.Length - 1;
 
-        data.nodesOutflows[p] = data.zasilanieZPompowni;
+        data.nodesOutflows[p] = data.supplyFromPumpStation;
         FlowDirection(p, true);
 
-        data.nodesOutflows[zNode] = data.zasilanieZeZbiornika;
-        FlowDirection(zPipe, false);
+        if (data.supplyFromReservoir > 0)
+        {
+            data.nodesOutflows[zNode] = data.supplyFromReservoir;
+            FlowDirection(zPipe, false);
+        }
+
 
         return data.nodesOutflows;
     }
@@ -155,27 +231,27 @@ public class AppLogic : MonoBehaviour
         return data.pipesInflows;
     }
 
-    bool[] UstalWskazowkiZegara(DataVersion data)
+    bool[] SetClockDirection(DataVersion data)
     {
-        for (int i = 0; i < data.kierunekRuchuWskazowekZegara.Length; i++)
+        for (int i = 0; i < data.clockwiseDirection.Length; i++)
         {
             if (i == 0)
             {
-                data.kierunekRuchuWskazowekZegara[i] = true;
+                data.clockwiseDirection[i] = true;
             }
-            else if (i == data.kierunekRuchuWskazowekZegara.Length - 1)
+            else if (i == data.clockwiseDirection.Length - 1)
             {
-                data.kierunekRuchuWskazowekZegara[i] = false;
+                data.clockwiseDirection[i] = false;
             }
             else
             {
                 if (i == 1 || i == 2 || i == 5)
-                    data.kierunekRuchuWskazowekZegara[i] = true;
+                    data.clockwiseDirection[i] = true;
                 else
-                    data.kierunekRuchuWskazowekZegara[i] = false;
+                    data.clockwiseDirection[i] = false;
             }
         }
-        return data.kierunekRuchuWskazowekZegara;
+        return data.clockwiseDirection;
     }
 
     bool FlowDirection(int pipeIndex, bool flowDirection)
@@ -252,7 +328,7 @@ public class AppLogic : MonoBehaviour
         {
             Pipe pipe = new Pipe(i);
             pipe.length = dataVersion.pipesLength[i];
-            pipe.rozbiory = dataVersion.pipesRozbiory[i];
+            pipe.consumption = dataVersion.pipesConsumptions[i];
             pipes.Add(pipe);
 
         }
@@ -261,7 +337,7 @@ public class AppLogic : MonoBehaviour
         {
             Node node = new Node();
             node.index = i;
-            node.rozbiory = dataVersion.nodesRozbiory[i];
+            node.consumption = dataVersion.nodesConsumptions[i];
             node.height = dataVersion.nodesHeight[i];
             node.location = transform.GetChild(1).GetChild(i).GetComponent<RectTransform>();
             nodes.Add(node);
@@ -316,6 +392,8 @@ public class AppLogic : MonoBehaviour
     public void ResetApp()
     {
         Debug.Log("////////////////////////////////////ResetSimulation///////////////////////////////////////////////");
+        defaultDataVersion = DataVersion.CreateDefault();
+        InitializePositions();
         for (int i = 0; i < defaultDataVersion.pipesOutflows.Length; i++)
         {
             defaultDataVersion.pipesInflows[i] = 0;

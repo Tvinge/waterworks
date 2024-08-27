@@ -21,6 +21,8 @@ partial class CalculationTable : MonoBehaviour
     [SerializeField] AppLogic appLogic;
     [SerializeField] IterationManager iterationManager;
 
+    DataVersions DataVersions;
+
     List<GameObject> iterationTables = new List<GameObject>();
 
     Cell cell;
@@ -34,6 +36,7 @@ partial class CalculationTable : MonoBehaviour
         iterationManager = FindObjectOfType<IterationManager>();
 
         appLogic.updateDataVersion += OnDataUpdated;
+        appLogic.updateDataVersions += OnDatasUpdated;
         appLogic.resetSimulation += ResetCalculationTable;
         iterationManager.updateIterationResultsData += OnIterationDataUpdated;
     }
@@ -44,13 +47,31 @@ partial class CalculationTable : MonoBehaviour
         //TableContainer = GetComponent<Transform>().GetChild(1).gameObject;
         
     }
+    void OnDatasUpdated(DataVersions dataVersions)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            DataVersion dataVersion = dataVersions[(DataVersionType)i];
+            PropertyInfo[] properties = FillPropertiesArray();
+            int horizontalCellsCount = properties.Length;
+            int verticalCellsCount = dataVersion.nodesConsumptions.Length;
 
+            if (isFirstInvokeOfDataUpdated)
+            {
+                TableSetupOnFirstDataChange(verticalCellsCount, horizontalCellsCount, properties);
+                isFirstInvokeOfDataUpdated = false;
+            }
+
+            UpdateCellText(verticalCellsCount, horizontalCellsCount, dataVersion, properties);
+        }
+    }
     void OnDataUpdated(DataVersion dataVersion)
     {
+
         //List<string> verticalHeaderList = new List<string>();
         PropertyInfo[] properties = FillPropertiesArray();
         int horizontalCellsCount = properties.Length;
-        int verticalCellsCount = dataVersion.nodesRozbiory.Length;
+        int verticalCellsCount = dataVersion.nodesConsumptions.Length;
 
         if (isFirstInvokeOfDataUpdated)
         {
@@ -279,7 +300,7 @@ partial class CalculationTable : MonoBehaviour
                 {
                     //TODO: if isVisible - allow for displaying in table - 
                     decimal value = propertyValueArray[i];
-                    CellsContainer.transform.GetChild(j + horizontalCellsCount * i).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString();
+                    CellsContainer.transform.GetChild(j + horizontalCellsCount * i).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
                 }
             }
         }

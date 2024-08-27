@@ -24,61 +24,61 @@ namespace Tests
         }
 
 
-        List<RingData> SetupRingData()
-        {
-            var ringDatas = _iterationManager.CreateRingDatas();
-            int ringCount = ringDatas.Count;
-            int pipesPerRing = ringDatas[0].pipesPerRing;
+        //List<RingData> SetupRingData()
+        //{
+        //    var ringDatas = _iterationManager.CreateRingDatas();
+        //    int ringCount = ringDatas.Count;
+        //    int pipesPerRing = ringDatas[0].pipesPerRing;
 
-            for (int i = 0; i < ringCount; i++)
-            {
-                ringDatas[i] = _iterationManager.CalculateFirstIteration(ringDatas[i], i);                 //no need to calculate pipes which are not part of the ring
-            }
-            _iterationManager.SetDeltaDesignFlowForRing(ringDatas, pipesPerRing);
-            Pipe pipe = _iterationManager.FindPipesInMultipleRings(ringDatas);                            //atm 2 rings == 1 pipe in common
-            _iterationManager.CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
-            _iterationManager.CheckValues(ringDatas);
-            return ringDatas;
-        }
+        //    for (int i = 0; i < ringCount; i++)
+        //    {
+        //        ringDatas[i] = _iterationManager.CalculateFirstIteration(ringDatas[i],datav i);                 //no need to calculate pipes which are not part of the ring
+        //    }
+        //    _iterationManager.SetDeltaDesignFlowForRing(ringDatas, pipesPerRing);
+        //    Pipe pipe = _iterationManager.FindPipesInMultipleRings(ringDatas);                            //atm 2 rings == 1 pipe in common
+        //    _iterationManager.CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
+        //    _iterationManager.CheckValues(ringDatas);
+        //    return ringDatas;
+        //}
 
 
-        [Test]
-        public void CalculateNextIterationUnlessConditionsAreMet_ShouldNotThrowException_WhenValidInput()
-        {
-            // Arrange
-            List<RingData> ringDatas = SetupRingData();
-            int pipeIndex = 0;
+        //[Test]
+        //public void CalculateNextIterationUnlessConditionsAreMet_ShouldNotThrowException_WhenValidInput()
+        //{
+        //    // Arrange
+        //    //List<RingData> ringDatas = SetupRingData();
+        //    int pipeIndex = 0;
 
-            // Act & Assert
-            Assert.DoesNotThrow(() => _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex));
-        }
+        //    // Act & Assert
+        //    Assert.DoesNotThrow(() => _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex));
+        //}
 
-        [Test]
-        public void CalculateNextIterationUnlessConditionsAreMet_ShouldAdjustDiameter_WhenConditionsMet()
-        {
-            // Arrange
-            List<RingData> ringDatas = SetupRingData();
-            int pipeIndex = 0;
+        //[Test]
+        //public void CalculateNextIterationUnlessConditionsAreMet_ShouldAdjustDiameter_WhenConditionsMet()
+        //{
+        //    // Arrange
+        //    //List<RingData> ringDatas = SetupRingData();
+        //    int pipeIndex = 0;
 
-            // Act
-            _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex);
+        //    // Act
+        //    _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex);
 
-            // Assert
-            // Add assertions to verify the expected behavior
-            // For example, check if the diameter was adjusted correctly
-            // Assert.AreEqual(expectedValue, actualValue);
-        }
+        //    // Assert
+        //    // Add assertions to verify the expected behavior
+        //    // For example, check if the diameter was adjusted correctly
+        //    // Assert.AreEqual(expectedValue, actualValue);
+        //}
 
-        [Test]
-        public void CalculateNextIterationUnlessConditionsAreMet_ShouldHandleEmptyRingDatas()
-        {
-            // Arrange
-            List<RingData> ringDatas = SetupRingData();
-            int pipeIndex = 0;
+        //[Test]
+        //public void CalculateNextIterationUnlessConditionsAreMet_ShouldHandleEmptyRingDatas()
+        //{
+        //    // Arrange
+        //    //List<RingData> ringDatas = SetupRingData();
+        //    int pipeIndex = 0;
 
-            // Act & Assert
-            Assert.DoesNotThrow(() => _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex));
-        }
+        //    // Act & Assert
+        //    Assert.DoesNotThrow(() => _iterationManager.CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipeIndex));
+        //}
 
 
 

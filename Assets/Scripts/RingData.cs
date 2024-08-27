@@ -9,11 +9,14 @@ public class Node
     public int index;
     public decimal inflow;
     public decimal outflow;
-    public decimal rozbiory;
+    public decimal consumption;
     public decimal height;
     public RectTransform location;
     public List<Pipe> ConnectedPipes { get; set; } = new List<Pipe>();
-
+    public Node Clone()
+    {
+        return (Node)this.MemberwiseClone();
+    }
 }
 public class Pipe
 {
@@ -21,7 +24,7 @@ public class Pipe
     public decimal length {get; set;}
     public decimal inflow { get; set; }
     public decimal outflow { get; set; }
-    public decimal rozbiory { get; set; }
+    public decimal consumption { get; set; }
     public decimal designFlow { get; set; }
     public bool flowDirection { get; set; }
     public decimal diameter { get; set; }
@@ -44,7 +47,7 @@ public class Pipe
         newPipe.index = this.index;
         newPipe.inflow = this.inflow;
         newPipe.outflow = this.outflow;
-        newPipe.rozbiory = this.rozbiory;
+        newPipe.consumption = this.consumption;
         newPipe.designFlow = this.designFlow;
         newPipe.diameter = this.diameter;
         newPipe.roundedDiameter = this.roundedDiameter;
@@ -55,6 +58,10 @@ public class Pipe
         newPipe.outflowNode = this.outflowNode;
 
         return newPipe;
+    }
+    public Pipe Clone()
+    {
+        return (Pipe)this.MemberwiseClone();
     }
 }
 
@@ -94,7 +101,7 @@ public class RingData
 
 
     public int ringIndex;
-    List<int> nodesInRing;
+    public List<int> nodesInRing;
     public int pipesPerRing;
 
 
