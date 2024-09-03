@@ -10,13 +10,22 @@ using TMPro;
 partial class CalculationTable : MonoBehaviour
 {
     [SerializeField] GameObject CalculationTableObject;
-    [SerializeField] GameObject BaseTable;
+
+    [SerializeField] List<BaseTable> BaseTables;
+    //[SerializeField] GameObject BaseTable;
     [SerializeField] GameObject IterationTablePrefab;
     [SerializeField] GameObject CellPrefab;
 
-    [SerializeField] GameObject HorizontalHeader;
-    [SerializeField] GameObject VerticalHeader;
-    [SerializeField] GameObject CellsContainer;
+
+    [Serializable]
+    public class BaseTable
+    {
+        public GameObject BaseTableObject;
+        public GameObject HorizontalHeader;
+        public GameObject VerticalHeader;
+        public GameObject CellsContainer;
+    }
+
 
     [SerializeField] AppLogic appLogic;
     [SerializeField] IterationManager iterationManager;
@@ -29,13 +38,14 @@ partial class CalculationTable : MonoBehaviour
     //float TableWidth;
     //float TableHeight;
     bool isFirstInvokeOfDataUpdated = true;
+    bool isFirstInvokeOfDataUpdates = true;
 
     private void Awake()
     {
         appLogic = FindObjectOfType<AppLogic>();
         iterationManager = FindObjectOfType<IterationManager>();
 
-        appLogic.updateDataVersion += OnDataUpdated;
+        //appLogic.updateDataVersion += OnDataUpdated;
         appLogic.updateDataVersions += OnDatasUpdated;
         appLogic.resetSimulation += ResetCalculationTable;
         iterationManager.updateIterationResultsData += OnIterationDataUpdated;
@@ -44,42 +54,33 @@ partial class CalculationTable : MonoBehaviour
     private void Start()
     {
         cell = new Cell();
-        //TableContainer = GetComponent<Transform>().GetChild(1).gameObject;
-        
+        //TableContainer = GetComponent<Transform>().GetChild(1).gameObject;        
     }
+
     void OnDatasUpdated(DataVersions dataVersions)
     {
         for (int i = 0; i < 3; i++)
         {
-            DataVersion dataVersion = dataVersions[(DataVersionType)i];
-            PropertyInfo[] properties = FillPropertiesArray();
-            int horizontalCellsCount = properties.Length;
-            int verticalCellsCount = dataVersion.nodesConsumptions.Length;
-
-            if (isFirstInvokeOfDataUpdated)
-            {
-                TableSetupOnFirstDataChange(verticalCellsCount, horizontalCellsCount, properties);
-                isFirstInvokeOfDataUpdated = false;
-            }
-
-            UpdateCellText(verticalCellsCount, horizontalCellsCount, dataVersion, properties);
+            DataVersion dataVersion = dataVersions.dataVersions[i];
+            OnDataUpdated(dataVersion, BaseTables[i]);
         }
     }
-    void OnDataUpdated(DataVersion dataVersion)
+    void OnDataUpdated(DataVersion dataVersion, BaseTable tableToUpdate)
     {
-
-        //List<string> verticalHeaderList = new List<string>();
         PropertyInfo[] properties = FillPropertiesArray();
         int horizontalCellsCount = properties.Length;
         int verticalCellsCount = dataVersion.nodesConsumptions.Length;
 
-        if (isFirstInvokeOfDataUpdated)
+        if (isFirstInvokeOfDataUpdates)
         {
-            TableSetupOnFirstDataChange(verticalCellsCount, horizontalCellsCount, properties);
-            isFirstInvokeOfDataUpdated = false;
+            for (int i = 0; i < 3; i++)
+            {
+                TableSetupOnFirstDataChange(BaseTables[i], verticalCellsCount, horizontalCellsCount, properties);
+            }
         }
+        isFirstInvokeOfDataUpdates = false;
 
-        UpdateCellText(verticalCellsCount, horizontalCellsCount, dataVersion, properties);
+        UpdateCellText(tableToUpdate, verticalCellsCount, horizontalCellsCount, dataVersion, properties);
     }
    void ResetCalculationTable()
     {
@@ -91,25 +92,25 @@ partial class CalculationTable : MonoBehaviour
         }
     }
 
-    void TableSetupOnFirstDataChange(int verticalCellsCount, int horizontalCellsCount, PropertyInfo[] properties)
+    void TableSetupOnFirstDataChange(BaseTable tableToUpdate, int verticalCellsCount, int horizontalCellsCount, PropertyInfo[] properties)
     {
         //RectTransform rectTransform = CalculationTableObject.GetComponent<RectTransform>();
-        RectTransform baseTableRectTransform = BaseTable.GetComponent<RectTransform>();
+        RectTransform baseTableRectTransform = tableToUpdate.BaseTableObject.GetComponent<RectTransform>();
 
         int TableWidth = horizontalCellsCount * (int)cell.width + (int)cell.width;
         int TableHeight = verticalCellsCount * (int)cell.height + (int)cell.height;
         SetTablesChildrenSizes(baseTableRectTransform, new Vector2Int(TableWidth, TableHeight));
 
-        DestroyCellsInTable();
-        CreateCellsInTable(verticalCellsCount, horizontalCellsCount, BaseTable);
+        DestroyCellsInTable(tableToUpdate);
+        CreateCellsInTable(verticalCellsCount, horizontalCellsCount, tableToUpdate.BaseTableObject);
 
         for (int i = 0; i < horizontalCellsCount; i++)
         {
-            HorizontalHeader.transform.GetChild(i + 1).GetChild(1).GetComponent<TextMeshProUGUI>().text = properties[i].Name;
+            tableToUpdate.HorizontalHeader.transform.GetChild(i + 1).GetChild(1).GetComponent<TextMeshProUGUI>().text = properties[i].Name;
         }
         for (int i = 0; i < verticalCellsCount; i++)
         {
-            VerticalHeader.transform.GetChild(i + 1).GetChild(1).GetComponent<TextMeshProUGUI>().text = i.ToString();
+            tableToUpdate.VerticalHeader.transform.GetChild(i + 1).GetChild(1).GetComponent<TextMeshProUGUI>().text = i.ToString();
             //VerticalHeader.transform.GetChild(i + 1).GetChild(1).GetComponent<TextMeshProUGUI>().text = verticalHeaderList(i);
         }
     }
@@ -289,18 +290,29 @@ partial class CalculationTable : MonoBehaviour
 
 
 
-    void UpdateCellText(int verticalCellsCount, int horizontalCellsCount, DataVersion dataVersion, PropertyInfo[] properties)
+    void UpdateCellText(BaseTable table, int verticalCellsCount, int horizontalCellsCount, DataVersion dataVersion, PropertyInfo[] properties)
     {
+        int totalCells = verticalCellsCount * horizontalCellsCount;
+        int childCount = table.CellsContainer.transform.childCount;
+
+        Debug.Log($"Total cells expected: {totalCells}, Child count in CellsContainer: {childCount}");
+
         for (int i = 0; i < verticalCellsCount; i++)
         {
             for (int j = 0; j < horizontalCellsCount; j++)
             {
+                int index = j + horizontalCellsCount * i;
+                if (index >= childCount)
+                {
+                    Debug.LogError($"Index out of bounds: {index}, Child count: {childCount}");
+                    continue;
+                }
+
                 object propertyValueObject = ReflectionHelper.GetPropertyValue(dataVersion, properties[j].Name);
                 if (propertyValueObject is decimal[] propertyValueArray)
                 {
-                    //TODO: if isVisible - allow for displaying in table - 
                     decimal value = propertyValueArray[i];
-                    CellsContainer.transform.GetChild(j + horizontalCellsCount * i).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
+                    table.CellsContainer.transform.GetChild(index).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
                 }
             }
         }
@@ -334,20 +346,20 @@ partial class CalculationTable : MonoBehaviour
         }
     }
 
-    void DestroyCellsInTable()
+    void DestroyCellsInTable(BaseTable baseTable)
     {
-        foreach (Transform child in HorizontalHeader.transform)
+        foreach (Transform child in baseTable.HorizontalHeader.transform)
         {
             //child.GetChild(1).GetComponent<TextMeshPro>().text = "";
-            Destroy(child.gameObject);
+           // Destroy(child.gameObject);
         }
-        foreach (Transform child in VerticalHeader.transform)
+        foreach (Transform child in baseTable.VerticalHeader.transform)
         {
-            Destroy(child.gameObject);
+            //Destroy(child.gameObject);
         }
-        foreach (Transform child in CellsContainer.transform)
+        foreach (Transform child in baseTable.CellsContainer.transform)
         {
-            Destroy(child.gameObject);
+           // Destroy(child.gameObject);
         }
     }
 }

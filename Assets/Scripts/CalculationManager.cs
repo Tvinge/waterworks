@@ -14,19 +14,18 @@ public class CalculationManager : MonoBehaviour
     int stepCount = 0;
     int stepCountBackward = 7;
 
+    DataVersions dataVersions = new DataVersions();
     DataVersion dataVersion = new DataVersion();
 
     private void Awake()
     {
         appLogic = FindObjectOfType<AppLogic>();
         dataLoader = FindObjectOfType<DataLoader>();
-        appLogic.updateDataVersion += OnDataUpdated;
-
+        //appLogic.updateDataVersion += OnDataUpdated;
+        appLogic.updateDataVersions += OnDatasUpdated;
 
         appLogic.calculateWaterDistribution += CalculateWholeIteration;
         appLogic.resetSimulation += ResetValues;
-
-        //StartingDiameterMethod();
     }
 
     private void ResetValues()
@@ -40,22 +39,29 @@ public class CalculationManager : MonoBehaviour
         }
     }
 
-    void OnDataUpdated(DataVersion d)
+    void OnDatasUpdated(DataVersions datas)
     {
-        dataVersion = d;
+        dataVersions = datas;
     }
+    //void OnDataUpdated(DataVersion d)
+    //{
+    //    dataVersion = d;
+    //}
 
 
     #region FlowCalculations
-    public void CalculateWholeIteration(DataVersion d)
+    public void CalculateWholeIteration(DataVersions datas)
     {
-        Debug.Log("invoked event");
-        for(int i = 0; i < 8; i++)
+        for (int i = 0; i < 3; i++)
         {
-            if (dataVersion != null)
+            for (int j = 0; j < 8; j++)
             {
-                SearchForNextNodeIndexAndCalculateIt(d);
+                if (datas.dataVersions[i] != null)
+                {
+                    SearchForNextNodeIndexAndCalculateIt(datas.dataVersions[i]);
+                }
             }
+            ResetValues();
         }
     }
     void SearchForNextNodeIndexAndCalculateIt(DataVersion d)
@@ -85,28 +91,28 @@ public class CalculationManager : MonoBehaviour
     void CalculateWaterFlow(DataVersion d,int nodeIndex)
     {
         List<int> adjacentPipes = d._nodeAndAdjacentPipes[nodeIndex];
-        CalculateInflowOnPipesNextToNode(nodeIndex);
+        CalculateInflowOnPipesNextToNode(d, nodeIndex);
         for (int i = 0; i < adjacentPipes.Count; i++)
         {
             CalculateOutflowOnPipe(d, adjacentPipes[i]);
-            CalculateOutflowOnNode(d, ReturnAdjacentNode(dataVersion, adjacentPipes[i], nodeIndex));
+            CalculateOutflowOnNode(d, ReturnAdjacentNode(d, adjacentPipes[i], nodeIndex));
         }
     }
 
-    void CalculateInflowOnPipesNextToNode(int nodeIndex)
+    void CalculateInflowOnPipesNextToNode(DataVersion d, int nodeIndex)
     {
-        List<int> uncalculatedPipeIndexes = CheckIfPipesAreCalculated(dataVersion, nodeIndex);
+        List<int> uncalculatedPipeIndexes = CheckIfPipesAreCalculated(d, nodeIndex);
         List<(int pipeIndex, int[] adjacentNodes)> adjacentNodesToAdjacentPipes = new List<(int, int[])>();
 
         for (int i = 0; i < uncalculatedPipeIndexes.Count; i++)
         {
-            List<int> adjacentNodesToPipe = dataVersion._pipesAdjacentNodes[uncalculatedPipeIndexes[i]];
+            List<int> adjacentNodesToPipe = d._pipesAdjacentNodes[uncalculatedPipeIndexes[i]];
             int[] adjacentNodes = new int[2];
             adjacentNodes[0] = nodeIndex;
-            adjacentNodes[1] = ReturnAdjacentNode(dataVersion, uncalculatedPipeIndexes[i], nodeIndex);
+            adjacentNodes[1] = ReturnAdjacentNode(d, uncalculatedPipeIndexes[i], nodeIndex);
             adjacentNodesToAdjacentPipes.Add((uncalculatedPipeIndexes[i], adjacentNodes));
         }
-        SetOutFlowOnNodeBasedOnOutflowsOnAdjacantNodes(nodeIndex, uncalculatedPipeIndexes, adjacentNodesToAdjacentPipes);
+        SetOutFlowOnNodeBasedOnOutflowsOnAdjacantNodes(d, nodeIndex, uncalculatedPipeIndexes, adjacentNodesToAdjacentPipes);
     }
 
     static List<int> CheckIfPipesAreCalculated(DataVersion dataVersion, int nodeIndex)
@@ -125,7 +131,7 @@ public class CalculationManager : MonoBehaviour
         }
         return uncalculatedPipeIndexes;
     }
-    void SetOutFlowOnNodeBasedOnOutflowsOnAdjacantNodes(int nodeIndex, List<int> uncalculatedPipeIndexes, List<(int pipeIndex, int[] adjacentNodes)> adjacentNodesToAdjacentPipes)
+    void SetOutFlowOnNodeBasedOnOutflowsOnAdjacantNodes(DataVersion dataVersion, int nodeIndex, List<int> uncalculatedPipeIndexes, List<(int pipeIndex, int[] adjacentNodes)> adjacentNodesToAdjacentPipes)
     {
         for (int i = 0; i < uncalculatedPipeIndexes.Count; i++)
         {
@@ -260,18 +266,14 @@ public class CalculationManager : MonoBehaviour
         }
         return dataVersion.doubleInflowsOnPipes;
     }
-
-    //zrobic to z try-catch?
     static decimal[] CalculateOutflowOnNode(DataVersion d, int nodeIndex)
     {
-        //tworzy liste z indexami pobliskich rur
         List<int> adjacentPipesIndexes = d._nodeAndAdjacentPipes[nodeIndex];
         List<int> emptyPipeIndexes = new List<int>();
         List<int> fullPipeIndexes = new List<int>();
 
         for (int i = 0; i < adjacentPipesIndexes.Count; i++)
         {
-            Debug.Log($"adjacent pipe index: {adjacentPipesIndexes[i]}, outflow: {d.pipesOutflows[adjacentPipesIndexes[i]]})");
             if (d.pipesOutflows[adjacentPipesIndexes[i]] > 0 && d.nodesOutflows[nodeIndex] > 0)
             {
                 Debug.Log($"calculated node index: {nodeIndex}, pipeindex: {adjacentPipesIndexes[i]}");
@@ -290,20 +292,12 @@ public class CalculationManager : MonoBehaviour
 
         for (int i = 0; i < fullPipeIndexes.Count; i++)
         {
-            Debug.Log($"pipe {fullPipeIndexes[i]} outflow {d.pipesOutflows[fullPipeIndexes[i]]}");
             d.nodesInflows[nodeIndex] += d.pipesOutflows[fullPipeIndexes[i]];
         }
 
-        Debug.Log($" node {nodeIndex} inflow {d.nodesInflows[nodeIndex]} and rozbior {d.nodesConsumptions[nodeIndex]}");
-
         if (d.nodesInflows[nodeIndex] > d.nodesConsumptions[nodeIndex])
-        {
             d.nodesOutflows[nodeIndex] = d.nodesInflows[nodeIndex] - d.nodesConsumptions[nodeIndex];
-        }
-        else
-        {
-            Debug.Log($"za malo wody w wezle {nodeIndex}");
-        }
+
         return d.nodesOutflows;
     }
 
@@ -424,6 +418,10 @@ public class CalculationManager : MonoBehaviour
             if (otherNodeIndex != adjacentNodes[j])
                 nodeIndex = adjacentNodes[j];
         }
+
+        if (nodeIndex == -1)
+            Debug.LogWarning("_pipesAdjacentNodes is empty");
+
         return nodeIndex;
     }
     public static decimal AddupInflows(DataVersion data, int pipeIndex)

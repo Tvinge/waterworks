@@ -65,8 +65,9 @@ public class UIManager : MonoBehaviour
         }
         dropdown.ClearOptions();
         dropdown.AddOptions(dropdownMenuOptions);
+;
     }
-    void UpdateResultsOfIteration(List<RingData> ringDatas)
+    void UpdateResultsOfIteration(List<RingData> ringDatas, int dataType, bool isFirstIterationForThisData)
     {
         ResetUI();
         Debug.Log("update iteration results UImanager");
@@ -232,10 +233,11 @@ public class UIManager : MonoBehaviour
     //przypisywanie wartosci odplywow na odcinkach
     public void UpdatePipesOutflow(decimal[] pipesOutflows, bool[] flowDirection)
     {
+        outflowsOnPipesText = new TMP_Text[pipesOutflows.Length];
         for(int i = 0; i < pipesOutflows.Length; i++)
         {
             AssignChildTransform(i);
-            outflowsOnPipesText = new TMP_Text[pipesOutflows.Length];
+
             if (pipesOutflows[i] != 0)
             {
                 if (flowDirection[i] == true)

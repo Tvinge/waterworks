@@ -9,7 +9,7 @@ public class IterationManager : MonoBehaviour
 {
     #region //startup
 
-    public Action<List<RingData>> updateIterationResultsData;
+    public Action<List<RingData>,int,bool> updateIterationResultsData;
 
     AppLogic appLogic;
     DataLoader dataLoader;
@@ -34,7 +34,7 @@ public class IterationManager : MonoBehaviour
         appLogic = FindObjectOfType<AppLogic>();
 
         dataLoader.updateCoefficientData += OnCoefficientDataUpdate;
-        appLogic.updateDataVersion += OnDataUpdated;
+        appLogic.updateDataVersions += OnDataUpdates;
         appLogic.resetSimulation += Reset;
     }
 
@@ -42,9 +42,9 @@ public class IterationManager : MonoBehaviour
     {
         coefficientsData = d;
     }
-    void OnDataUpdated(DataVersion data)
+    void OnDataUpdates(DataVersions datas)
     {
-        dataVersion = data;
+        dataVersions = datas;
     }
     private void Reset()
     {
@@ -55,14 +55,19 @@ public class IterationManager : MonoBehaviour
     }
     public void InvokeUpdateIteration()
     {
-        PipeModellingHub(dataVersion);
+        for (int i = 0; i < 3; i++)
+        {
+            PipeModellingHub(dataVersions.dataVersions[i], i);
+            Reset();
+        }
+
     }
     #endregion
 
 
 
 
-    void PipeModellingHub(DataVersion data)
+    void PipeModellingHub(DataVersion data, int dataType)
     {
         List<RingData> ringDatas = CreateRingDatas();
         int ringCount = ringDatas.Count;
@@ -74,9 +79,10 @@ public class IterationManager : MonoBehaviour
         Pipe pipe = FindPipesInMultipleRings(ringDatas);                            //atm 2 rings == 1 pipe in common
         CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
         CheckValues(ringDatas);
-        updateIterationResultsData?.Invoke(ringDatas);
+        updateIterationResultsData?.Invoke(ringDatas,dataType,true);
         CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipe.index);        
     }
+
 
     public void CalculateNextIterationUnlessConditionsAreMet(List<RingData> ringDatas, int pipeIndex)
     {
@@ -99,7 +105,7 @@ public class IterationManager : MonoBehaviour
 
             iterationsCount++;
             Debug.Log("ITERATION: " + iterationsCount);
-            updateIterationResultsData?.Invoke(ringDatas);
+            updateIterationResultsData?.Invoke(ringDatas, false);
         }
         if (iterationsCount < maxIterations)
             Debug.Log("skibidi rizz iteration " + iterationsCount);
@@ -161,7 +167,7 @@ public class IterationManager : MonoBehaviour
 
         for (int i = 0; i < pipesPerRing; i++)
         {
-            Pipe pipe = PopulatePipeVariables(ringData, kValues, i);
+            Pipe pipe = PopulatePipeVariables(ringData, data, kValues, i);
             Node node = PopulateNodeVariables(ringData,data, i);
             if (pipeCalculations.Count < pipesPerRing)
                 pipeCalculations.Add(CalculateIteration(pipe, ringData));
@@ -174,7 +180,7 @@ public class IterationManager : MonoBehaviour
         return ringData;
     }
 
-    Pipe PopulatePipeVariables(RingData ringData, decimal[] kValues, int i)
+    Pipe PopulatePipeVariables(RingData ringData, DataVersion dataVersion, decimal[] kValues, int i)
     {
 
         PipeKey key = ringData.PipesDictionary.ElementAt(i).Key;
@@ -635,7 +641,7 @@ public class IterationManager : MonoBehaviour
         decimal headLoss = pipeCalculation.KValue * (decimal)Mathf.Pow((float)pipeCalculation.DesignFlow, 2) / 1000000 * flowDirectionInt;
         return headLoss;
     }
-    decimal CalculateQuotientOfHeadLossAndDesignFlow(RingData.PipeCalculation pipeCalculation) //moze iteration data?
+    decimal CalculateQuotientOfHeadLossAndDesignFlow(RingData.PipeCalculation pipeCalculation) 
     {
         decimal quotient = pipeCalculation.HeadLoss / pipeCalculation.DesignFlow;
 

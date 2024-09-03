@@ -10,34 +10,31 @@ public class AppLogic : MonoBehaviour
 {
     public Action<DataVersion> updateDataVersion;
     public Action<DataVersions> updateDataVersions;
-    //public Action<DataVersion> updateDataSet;
-
-    //public Action updateUIData;
-    public Action<DataVersion> calculateWaterDistribution;
+    public Action<DataVersions> calculateWaterDistribution;
     public Action iterateWaterDistribution;
     public Action initializeDictionaries;
     public Action resetSimulation;
 
-    DataVersion defaultDataVersion = DataVersion.CreateDefault();
-    DataVersion dataVersion = new DataVersion();
-    DataVersions dataVersions = new DataVersions();
+    IterationManager iterationManager;
 
+    DataVersions dataVersions = new DataVersions();
+    DataVersion defaultDataVersion = DataVersion.CreateDefault();
     DataVersion maxDataVersion;
     DataVersion minDataVersion;
     DataVersion maxFireDataVersion;
 
-    //List<DataVersion> dataVersions = new List<DataVersion>();
-
     List<int> nodesWithOutflowsOnStart = new List<int>();
+    private bool isFirstTimeRunningStart = true;
 
-    private bool isFirstMinCalculation = true;
     private void Awake()
     {
+        iterationManager = FindAnyObjectByType<IterationManager>();
+
         DeclareInflowArray();
         SetClockDirection(defaultDataVersion);
         InitializePositions();
 
-        updateDataVersion += OnDataUpdated;
+        updateDataVersion += OnDataUpdated;        
     }
     void Start()
     {
@@ -51,34 +48,33 @@ public class AppLogic : MonoBehaviour
         TransferUIElementsToData(defaultDataVersion); //TODO: create data, than UI elements
         GetNodesWithOutflowOnStart(defaultDataVersion);
 
+        {
+            maxDataVersion = defaultDataVersion.DeepCopy();
+            minDataVersion = defaultDataVersion.DeepCopy();
+            maxFireDataVersion = defaultDataVersion.DeepCopy();
 
+            dataVersions[DataVersionType.Max] = maxDataVersion;
+            dataVersions[DataVersionType.Min] = minDataVersion;
+            dataVersions[DataVersionType.MaxFire] = maxFireDataVersion;
+            dataVersions[DataVersionType.Default] = defaultDataVersion;
+        }
 
-        maxDataVersion = defaultDataVersion;
-        minDataVersion = defaultDataVersion;
+        SetupOtherDataVersions();
 
-        //maxDataVersion = defaultDataVersion.DeepCopy();
-        //minDataVersion = defaultDataVersion.DeepCopy();
-        //maxFireDataVersion = defaultDataVersion.DeepCopy();
-
-        //dataVersions.maxDataVersion = maxDataVersion;
-        //dataVersions.minDataVersion = minDataVersion;
-        //dataVersions.maxFireDataVersion = maxFireDataVersion;
-        //dataVersions.defaultDataVersion = defaultDataVersion;
-
-        updateDataVersion?.Invoke(defaultDataVersion);
-
+        updateDataVersions?.Invoke(dataVersions);
     }
 
-    void CalculateQForMin()
+    void SetupOtherDataVersions()
     {
-        foreach (var node in minDataVersion.Nodes)
-        {
-            node.consumption = maxDataVersion.nodesConsumptions[node.index] / minDataVersion.coefficient;
-        }
-        foreach (var pipe in minDataVersion.Pipes)
-        {
-            pipe.consumption = maxDataVersion.pipesConsumptions[pipe.index] / minDataVersion.coefficient;
-        }
+        DecreseQminConsumptionValuesByCoefficient();
+        int lastNodeIndex = minDataVersion.nodesConsumptions.Count() - 1;
+        minDataVersion.nodesOutflows[lastNodeIndex] = 0; // Reservoir is being filled due to excess of water, hence no outflow
+
+        //add 10 dm3/s to the node with the lowest pressure (height and headloss)
+        decimal additionalConsumptionDuringFire = 10;
+        int nodeIndex = FindNodeWithTheLowestPressure();
+        maxFireDataVersion.nodesConsumptions[nodeIndex] += additionalConsumptionDuringFire;
+        maxFireDataVersion.nodesOutflows[lastNodeIndex] += additionalConsumptionDuringFire;
     }
 
     private void Update()
@@ -88,7 +84,6 @@ public class AppLogic : MonoBehaviour
             ResetApp();
         }
     }
-
     void GetNodesWithOutflowOnStart(DataVersion dataVersion)
     {
         for (int i = 0; i < dataVersion.nodesHeight.Length; i++)
@@ -99,37 +94,48 @@ public class AppLogic : MonoBehaviour
             }
         }
     }
-    public void CalculateMaxWaterDistributionButton()
+    public void CalculateWaterDistribution()
     {
-        calculateWaterDistribution?.Invoke(maxDataVersion);
-        updateDataVersion?.Invoke(maxDataVersion);
+        updateDataVersions?.Invoke(dataVersions);
+        calculateWaterDistribution?.Invoke(dataVersions);
+        updateDataVersions?.Invoke(dataVersions);
     }
-    public void CalculateMinWDButton()
+    void DecreseQminConsumptionValuesByCoefficient()
     {
-
-        int nodeCount = 0;
-        int pipeCount = 0;
-        //if (isFirstMinCalculation == true)
+        foreach (var node in minDataVersion.Nodes)
         {
-            foreach (var node in minDataVersion.Nodes)
-            {
-                node.consumption = maxDataVersion.nodesConsumptions[node.index] / minDataVersion.coefficient;
-                minDataVersion.nodesConsumptions[node.index] = node.consumption;
-                nodeCount++;
-            }
-            foreach (var pipe in minDataVersion.Pipes)
-            {
-                pipe.consumption = maxDataVersion.pipesConsumptions[pipe.index] / minDataVersion.coefficient;
-                minDataVersion.pipesConsumptions[pipe.index] = pipe.consumption;
-                minDataVersion.flowDirection[pipe.index] = true;
-                pipeCount++;
-            }
-            minDataVersion.nodesOutflows[7] = 0;
-            isFirstMinCalculation = false;
+            node.consumption = maxDataVersion.nodesConsumptions[node.index] / minDataVersion.coefficient;
+            minDataVersion.nodesConsumptions[node.index] = node.consumption;
         }
-        calculateWaterDistribution?.Invoke(minDataVersion);
-        updateDataVersion?.Invoke(minDataVersion);
+        foreach (var pipe in minDataVersion.Pipes)
+        {
+            pipe.consumption = maxDataVersion.pipesConsumptions[pipe.index] / minDataVersion.coefficient;
+            minDataVersion.pipesConsumptions[pipe.index] = pipe.consumption;
+            minDataVersion.flowDirection[pipe.index] = true;
+        }
     }
+
+
+    int FindNodeWithTheLowestPressure()
+    {
+        List<decimal> nodesPressureValues = new List<decimal>();
+        foreach (var node in maxFireDataVersion.Nodes)
+        {
+            decimal maxPipesHeightNearNode = 0;
+            foreach (var pipe in node.ConnectedPipes)
+            {
+                if (maxPipesHeightNearNode < maxFireDataVersion.buildingsHeight[pipe.index])
+                {
+                    maxPipesHeightNearNode = maxFireDataVersion.buildingsHeight[pipe.index];
+                }
+            }
+            nodesPressureValues.Add(node.height + maxPipesHeightNearNode + 5); // 5m of water column height, is a additional pressure value for the citizens
+        }
+        decimal maxPressure = nodesPressureValues.Max();
+        int nodeIndex = nodesPressureValues.IndexOf(maxPressure);
+        return nodeIndex;
+    }
+
 
     void FindNearbyUIElements(DataVersion data)
     {
@@ -392,7 +398,7 @@ public class AppLogic : MonoBehaviour
     public void ResetApp()
     {
         Debug.Log("////////////////////////////////////ResetSimulation///////////////////////////////////////////////");
-        defaultDataVersion = DataVersion.CreateDefault();
+        //defaultDataVersion = DataVersion.CreateDefault();
         InitializePositions();
         for (int i = 0; i < defaultDataVersion.pipesOutflows.Length; i++)
         {

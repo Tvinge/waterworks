@@ -12,7 +12,7 @@ public enum DataVersionType
 
 public class DataVersions
 {
-    DataVersion[] dataVersions;
+    public DataVersion[] dataVersions;
 
     public DataVersions()
     {
