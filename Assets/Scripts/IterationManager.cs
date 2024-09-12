@@ -9,7 +9,8 @@ public class IterationManager : MonoBehaviour
 {
     #region //startup
 
-    public Action<List<RingData>,int,bool> updateIterationResultsData;
+    public Action<List<RingData>, int, bool, int> updateIterationResultsData;
+    Action changeDiameter;
 
     AppLogic appLogic;
     DataLoader dataLoader;
@@ -26,7 +27,17 @@ public class IterationManager : MonoBehaviour
     List<int> adjustedDiameterValuesCounterUp = Enumerable.Repeat(0, 9).ToList();
     List<int> adjustedDiameterValuesCounterDown = Enumerable.Repeat(0, 9).ToList();
     List<bool> unadjustableDiameterValuesMin = Enumerable.Repeat(false, 9).ToList(); 
-    List<bool> unadjustableDiameterValuesMax = Enumerable.Repeat(false, 9).ToList(); 
+    List<bool> unadjustableDiameterValuesMax = Enumerable.Repeat(false, 9).ToList();
+
+    List<List<bool>> conditionsFirst;
+    List<List<bool>> conditionsSecond;
+
+    int pipeIndexInMuliltpleRings;
+    bool areVelocitiesInMaxDataGreaterThanX = false;
+    bool areVelocitiesInMinDataGreaterThanX = false;
+
+
+    List<decimal> pipeDiameters;
 
     private void Awake()
     {
@@ -52,65 +63,116 @@ public class IterationManager : MonoBehaviour
         adjustedDiameterValuesCounterDown = Enumerable.Repeat(0, 9).ToList();
         unadjustableDiameterValuesMin = Enumerable.Repeat(false, 9).ToList();
         unadjustableDiameterValuesMax = Enumerable.Repeat(false, 9).ToList();
+
+
+        InitializeConditionLists();
+
     }
     public void InvokeUpdateIteration()
     {
-        for (int i = 0; i < 3; i++)
-        {
-            PipeModellingHub(dataVersions.dataVersions[i], i);
-            Reset();
-        }
+        int iterationCount = 0;
+        int maxIterations = 20;
 
+        bool isFirstInokeForFirstData = true;
+        bool isFirstInokeForSecondData= true;
+
+        InitializeConditionLists();
+
+        PipeModellingHub(dataVersions.dataVersions[0], 0, iterationCount);//MAX
+        pipeDiameters = ringDatas[0].Pipes.Select(x => (decimal)x.roundedDiameter).ToList();
+        //pipeDiameters.AddRange(ringDatas[0].Pipes.Select(x => (float)x.roundedDiameter).ToList());
+        pipeDiameters.AddRange(ringDatas[1].Pipes.Select(x => (decimal)x.roundedDiameter).ToList());
+        PipeModellingHub(dataVersions.dataVersions[1], 1, iterationCount);//MIN
+        PipeModellingHub(dataVersions.dataVersions[2], 2, iterationCount);//MAXFIRE
+    }
+    void InitializeConditionLists()
+    {
+        conditionsFirst = new List<List<bool>>
+        {
+            Enumerable.Repeat(false, 9).ToList(),
+            Enumerable.Repeat(false, 9).ToList(),
+            Enumerable.Repeat(false, 9).ToList()
+        };
+        conditionsSecond = new List<List<bool>>
+        {
+            Enumerable.Repeat(false, 9).ToList(),
+            Enumerable.Repeat(false, 9).ToList(),
+            Enumerable.Repeat(false, 9).ToList()
+        };
+    }
+    bool IsFirstAndSecondConditionMet(List<List<bool>> condtions)
+    { 
+        return condtions[0].All(c => c) && condtions[1].All(c => c);
+        //return true if both conditions are met
+    }
+    bool AreVelocitiesGreaterThanX(int iterationsCount, int maxIterations)
+    {
+        if (iterationsCount > maxIterations)
+            return true;
+
+        if (conditionsFirst[0].Any(c => !c) || conditionsFirst[1].Any(c => !c) || conditionsSecond[0].Any(c => !c) || conditionsSecond[1].Any(c => !c))
+            return false; //all other conditions must be met before checking velocity
+        else
+        {
+            var falseIndexesList1 = conditionsFirst[2]
+                .Select((value, index) => new { value, index })
+                .Where(x => !x.value)
+                .Select(x => x.index)
+                .ToList();
+
+            // Get indexes of false values in list2
+            var falseIndexesList2 = conditionsSecond[2]
+                .Select((value, index) => new { value, index })
+                .Where(x => !x.value)
+                .Select(x => x.index)
+                .ToList();
+
+            // Check if there are any common indexes with false values in both lists
+            foreach (var index in falseIndexesList1)
+            {
+                if (falseIndexesList2.Contains(index))
+                {
+                    return false;
+                }
+            }
+            Debug.Log ("Velocities are greater than 0.5m/s");
+            return true;
+        }
     }
     #endregion
-
-
-
-
-    void PipeModellingHub(DataVersion data, int dataType)
+    void PipeModellingHub(DataVersion data, int dataType, int iterationCount)
     {
-        List<RingData> ringDatas = CreateRingDatas();
+        ringDatas = CreateRingDatas();
         int ringCount = ringDatas.Count;
         for (int i = 0; i < ringCount; i++)
         {
-            ringDatas[i] = CalculateFirstIteration(ringDatas[i],data, i);                 //no need to calculate pipes which are not part of the ring
+            ringDatas[i] = CalculateFirstIteration(ringDatas[i], data, i);                 //no need to calculate pipes which are not part of the ring
         }
         SetDeltaDesignFlowForRing(ringDatas, pipesPerRing);
-        Pipe pipe = FindPipesInMultipleRings(ringDatas);                            //atm 2 rings == 1 pipe in common
-        CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipe.index);
-        CheckValues(ringDatas);
-        updateIterationResultsData?.Invoke(ringDatas,dataType,true);
-        CalculateNextIterationUnlessConditionsAreMet(ringDatas, pipe.index);        
+        pipeIndexInMuliltpleRings = FindPipesInMultipleRings(ringDatas).index;                            //atm 2 rings == 1 pipe in common
+        CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipeIndexInMuliltpleRings);
+        CheckValues(ringDatas, dataType);
+        updateIterationResultsData?.Invoke(ringDatas, dataType, true, iterationCount);
+
+        CalculateNextIterationUnlessConditionsAreMet(ringDatas, dataType, pipeIndexInMuliltpleRings, iterationCount);
     }
-
-
-    public void CalculateNextIterationUnlessConditionsAreMet(List<RingData> ringDatas, int pipeIndex)
+    public void CalculateNextIterationUnlessConditionsAreMet(List<RingData> ringDatas, int dataType, int pipeIndex, int iterationCount)
     {
-        int iterationsCount = 1;
-        int maxIterations = 50;
-        int countOfadjustments = 0;
         int ringCount = ringDatas.Count;
         List<List<bool>> conditions;
-        bool znak = true;
-        conditions = CheckValues(ringDatas);
+        conditions = CheckValues(ringDatas, dataType);
 
-        while (IsNextIterrationNeccesary(ringDatas) == true)
+        while (IsNextIterrationNeccesary(ringDatas, dataType, iterationCount) == true)
         {
-            if (!DecideTypeOfCalculationDueToConditions(ringDatas, iterationsCount,maxIterations, conditions, ringCount)) //breaks if to many iterations
-                break;
+            if (!DecideTypeOfCalculationDueToConditions(ringDatas, conditions, ringCount, dataType)) //breaks if to many iterations
+                return;
             SetDeltaDesignFlowForRing(ringDatas, pipesPerRing);
             CalculateDeltaDesingFlowForPipesInMultipleRings(ringDatas, pipeIndex);
             CalculateIterationVelocity(ringDatas);
-            conditions = CheckValues(ringDatas);
-
-            iterationsCount++;
-            Debug.Log("ITERATION: " + iterationsCount);
-            updateIterationResultsData?.Invoke(ringDatas, false);
+            conditions = CheckValues(ringDatas, dataType);
+            iterationCount++;
+            updateIterationResultsData?.Invoke(ringDatas,dataType, false, iterationCount);
         }
-        if (iterationsCount < maxIterations)
-            Debug.Log("skibidi rizz iteration " + iterationsCount);
-        else
-            Debug.Log("skibidi ohio");
     }
     void CalculateIterationVelocity(List<RingData> ringDatas)
     {
@@ -153,7 +215,7 @@ public class IterationManager : MonoBehaviour
         return ringDatas;
     }
 
-    public RingData CalculateFirstIteration(RingData ringData,DataVersion data, int ringDataCounter)
+    public RingData CalculateFirstIteration(RingData ringData, DataVersion data, int ringDataCounter)
     {
         List<RingData.PipeCalculation> pipeCalculations = new List<RingData.PipeCalculation>();
         RingData.IterationData iterationData;
@@ -168,6 +230,8 @@ public class IterationManager : MonoBehaviour
         for (int i = 0; i < pipesPerRing; i++)
         {
             Pipe pipe = PopulatePipeVariables(ringData, data, kValues, i);
+            if (pipeDiameters != null)
+                pipe.roundedDiameter = pipeDiameters[ringDataCounter * pipesPerRing + i];
             Node node = PopulateNodeVariables(ringData,data, i);
             if (pipeCalculations.Count < pipesPerRing)
                 pipeCalculations.Add(CalculateIteration(pipe, ringData));
@@ -292,23 +356,17 @@ public class IterationManager : MonoBehaviour
 
     #endregion
     #region //iteration conditions etc
-    bool DecideTypeOfCalculationDueToConditions(List<RingData> ringDatas, int iterationsCount, int maxIterations, List<List<bool>> conditions, int ringCount)
+    bool DecideTypeOfCalculationDueToConditions(List<RingData> ringDatas, List<List<bool>> conditions, int ringCount, int dataType)
     {
-        if (iterationsCount > maxIterations)
-            return false;
-        else if (conditions[0].Any(c => !c))
+        if (conditions[0].Any(c => !c))
             return ConditionsBasic(ringDatas, ringCount);
-        else if (conditions[0].All(c => c) && conditions[1].Any(c => !c))                               //checks if all elements are true, and if any elements are false
-            return ConditionsWholeRingGoodPipesBad(ringDatas, ringCount);                                          //increase d
+        else if (conditions[0].All(c => c) && conditions[1].Any(c => !c))  //checks if all elements are true, and if any elements are false
+            return ConditionsWholeRingGoodPipesBad(ringDatas, ringCount,dataType);                              //increase d
         else if (conditions[0].All(c => c) && conditions[1].All(c => c) && conditions[2].Any(c => !c))
-            return CondtionsAllGoodExceptVelocity(ringDatas, ringCount);                                           //decrese d
+            return CondtionsAllGoodExceptVelocity(ringDatas, ringCount, dataType);                               //decrese d
         else
-        {
-            Debug.LogWarning("Check conditions for iterations, iteration: " + iterationsCount);
-            return true;
-        }
+            return false; //stopcalculations
     }
-
     bool ConditionsBasic(List<RingData> ringDatas, int ringCount)
     {
         for (int j = 0; j < ringCount; j++)
@@ -317,8 +375,11 @@ public class IterationManager : MonoBehaviour
         }
         return true;
     }
-    bool ConditionsWholeRingGoodPipesBad(List<RingData> ringDatas, int ringCount)
+    bool ConditionsWholeRingGoodPipesBad(List<RingData> ringDatas, int ringCount, int dataType)
     {
+        if (dataType == 2)
+            return false;
+
         AdjustPipeDiameter(ringDatas, ringCount, true);
         for (int j = 0; j < ringCount; j++)
         {
@@ -327,8 +388,15 @@ public class IterationManager : MonoBehaviour
         }
         return true;
     }
-    bool CondtionsAllGoodExceptVelocity(List<RingData> ringDatas, int ringCount)
+    bool CondtionsAllGoodExceptVelocity(List<RingData> ringDatas, int ringCount, int dataType)
     {
+        //if (dataType == 0 && !allowDiameterAdjustmentOne)
+        //    return false;
+        //else if (dataType == 1 && !allowDiameterAdjustmentTwo)
+        //    return false;
+        //else if (dataType == 2)
+        //    return false;
+
         AdjustPipeDiameter(ringDatas, ringCount, false);
         for (int j = 0; j < ringCount; j++)
         {
@@ -337,18 +405,14 @@ public class IterationManager : MonoBehaviour
         }
         return true;
     }
-
     void AdjustPipeDiameter(List<RingData> ringDatas, int ringCount, bool increase)
     {
-        //BruteForceDiameterAdjuster(ringDatas);
         int indexOfmaxPipe = GetIndexOfPipeWithMaxVelocity(ringDatas);
         int indexOfminPipe = GetIndexOfPipeWithMinVelocity(ringDatas);
         if (increase == true)
             AdjustPipeDiameterSmall(ringDatas, indexOfmaxPipe,adjustedDiameterValuesCounterUp, increase);
         else
             AdjustPipeDiameterSmall(ringDatas, indexOfminPipe,adjustedDiameterValuesCounterDown, increase);
-
-
     }
     int GetIndexOfPipeWithMaxVelocity(List<RingData> ringDatas)
     {
@@ -405,6 +469,8 @@ public class IterationManager : MonoBehaviour
                     ringData.Iterations.Last().pipeCalculations[index].Diameter = roundedDiameter;
                     pipe.roundedDiameter = roundedDiameter;
 
+                    pipeDiameters[pipe.index] = roundedDiameter;
+
                     ringData.Iterations.Last().pipeCalculations[index].finalVelocity = velocity;
                     pipe.velocity = velocity;
 
@@ -412,8 +478,11 @@ public class IterationManager : MonoBehaviour
                 }
             }
         }
+        
+
+        
     }
-    public List<List<bool>> CheckValues(List<RingData> ringDatas)
+    public List<List<bool>> CheckValues(List<RingData> ringDatas, int dataType)
     {
         List<bool> sumOfHeadLossList = new List<bool>();//2 entries, each for one ring
         List<bool> headLossList = new List<bool>();//all pipes from both rings in one list
@@ -434,22 +503,67 @@ public class IterationManager : MonoBehaviour
             ringData.Iterations.Last().sumOfHeadloss = pipeCalculations.Sum(pipeCalculations => pipeCalculations.HeadLoss);
             ringData.Iterations.Last().headlossList = headLossList;
             ringData.Iterations.Last().velocityList = velocityList;
+
+            //headLossList.Clear();
+            //velocityList.Clear();
         }
-        return new List<List<bool>> { sumOfHeadLossList, headLossList, velocityList };
+        List<List<bool>> conditions = new List<List<bool>> { sumOfHeadLossList, headLossList, velocityList };
+
+        if (dataType == 0)
+            conditionsFirst = conditions;
+        else if (dataType == 1)
+            conditionsSecond = conditions;
+
+        return conditions;
     }
-    bool IsNextIterrationNeccesary(List<RingData> ringDatas)
-    {
+    bool IsNextIterrationNeccesary(List<RingData> ringDatas, int dataType, int iterationCount)
+    {   
         List<bool> sumOfHeadlossList = ConditionsForIteration(ringDatas)[0];
         List<bool> headlossList = ConditionsForIteration(ringDatas)[1];
         List<bool> velocityList = ConditionsForIteration(ringDatas)[2];
 
-        if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false) || velocityList.Contains(false))
+        if (dataType == 2)
+            if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false))
+                return true;
+            else
+                return false;
+
+        if (iterationCount > 20)
+            return false;
+
+        if (dataType == 0 && areVelocitiesInMinDataGreaterThanX)
         {
-            return true; //next iteration is neccesary
+            if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false))
+            {
+                return true; //next iteration is neccesary
+            }
+            else
+                return false; //stop iterating
+        }
+        else if (dataType == 1 && areVelocitiesInMaxDataGreaterThanX)
+        {
+            if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false))
+            {
+                return true; //next iteration is neccesary
+            }
+            else
+                return false; //stop iterating
         }
         else
         {
-            return false; //stop iterating
+            if (sumOfHeadlossList.Contains(false) || headlossList.Contains(false) || velocityList.Contains(false))
+            {
+                return true; //next iteration is neccesary
+            }
+            else
+            {
+                if (dataType == 0)
+                    areVelocitiesInMaxDataGreaterThanX = true;
+                else if (dataType == 1)
+                    areVelocitiesInMinDataGreaterThanX = true;
+
+                return false; //stop iterating
+            }
         }
     }
     bool IsSumOfHeadLossSmallerThanLevelOfAcurracy(List<RingData.PipeCalculation> pipeCalculations)

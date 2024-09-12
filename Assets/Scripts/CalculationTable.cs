@@ -32,13 +32,21 @@ partial class CalculationTable : MonoBehaviour
 
     DataVersions DataVersions;
 
-    List<GameObject> iterationTables = new List<GameObject>();
+    List<List<GameObject>> iterationTableForDiffDatas = new()
+{
+    new List<GameObject>(),
+    new List<GameObject>(),
+    new List<GameObject>()
+};
+    //List<GameObject> iterationTables = new List<GameObject>();
 
     Cell cell;
     //float TableWidth;
     //float TableHeight;
     bool isFirstInvokeOfDataUpdated = true;
     bool isFirstInvokeOfDataUpdates = true;
+
+    Vector2 baseTableVector = new Vector2(0, 0);
 
     private void Awake()
     {
@@ -84,21 +92,35 @@ partial class CalculationTable : MonoBehaviour
     }
    void ResetCalculationTable()
     {
-        iterationTables.Clear();
-
+        //iterationTableForDiffDatas.Clear();
         for (int i = 0; i < CalculationTableObject.transform.GetChild(1).childCount; i++) 
         {
-            Destroy(CalculationTableObject.transform.GetChild(1).GetChild(i).gameObject); 
+            if (CalculationTableObject.transform.GetChild(1).GetChild(i).childCount == 0)
+                continue;
+            foreach (Transform child in CalculationTableObject.transform.GetChild(1).GetChild(i))
+            {
+                Destroy(child.gameObject);
+            }
+            //Destroy(CalculationTableObject.transform.GetChild(1).GetChild(i).gameObject); 
         }
+        CalculationTableObject.GetComponent<RectTransform>().sizeDelta = baseTableVector;
     }
 
     void TableSetupOnFirstDataChange(BaseTable tableToUpdate, int verticalCellsCount, int horizontalCellsCount, PropertyInfo[] properties)
     {
-        //RectTransform rectTransform = CalculationTableObject.GetComponent<RectTransform>();
         RectTransform baseTableRectTransform = tableToUpdate.BaseTableObject.GetComponent<RectTransform>();
+        Transform tables = tableToUpdate.BaseTableObject.transform.parent;
+
+        int dataTypesCount = 3;
 
         int TableWidth = horizontalCellsCount * (int)cell.width + (int)cell.width;
         int TableHeight = verticalCellsCount * (int)cell.height + (int)cell.height;
+        Vector2 parentVector = new Vector2(TableWidth, dataTypesCount * TableHeight + dataTypesCount * cell.height);
+        
+        tables.GetComponent<RectTransform>().sizeDelta = parentVector;
+        CalculationTableObject.GetComponent<RectTransform>().sizeDelta = parentVector;
+        baseTableVector = parentVector;
+
         SetTablesChildrenSizes(baseTableRectTransform, new Vector2Int(TableWidth, TableHeight));
 
         DestroyCellsInTable(tableToUpdate);
@@ -115,10 +137,16 @@ partial class CalculationTable : MonoBehaviour
         }
     }
 
-    void OnIterationDataUpdated(List<RingData> ringDatas)
+    void OnIterationDataUpdated(List<RingData> ringDatas, int dataType, bool isFirstInvokeForThisData, int iterationCount)
     {
-        GameObject newIterationTable = Instantiate(IterationTablePrefab, CalculationTableObject.transform.GetChild(1));
-        iterationTables.Add(newIterationTable);
+        GameObject newIterationTable = Instantiate(IterationTablePrefab, CalculationTableObject.transform.GetChild(1).GetChild(dataType));
+
+        if (isFirstInvokeForThisData)
+        {
+            iterationTableForDiffDatas[dataType] = new List<GameObject>();
+        }
+
+        iterationTableForDiffDatas[dataType].Add(newIterationTable);
 
         Type type = typeof(RingData.PipeCalculation);
         PropertyInfo[] allProperties = new PropertyInfo[6];
@@ -137,21 +165,30 @@ partial class CalculationTable : MonoBehaviour
         int TableWidth = horizontalCellsCount * (int)cell.width;
         int TableHeight = verticalCellsCount * (int)cell.height + (int)cell.height;
 
+        Vector2 vector = new Vector2(TableWidth * (iterationCount + 2), 0);
+        Vector2 vectorForParent = new Vector2(TableWidth * iterationCount, TableHeight);
+        CalculationTableObject.transform.GetChild(1).GetComponent<RectTransform>().sizeDelta = vectorForParent;
+        CalculationTableObject.GetComponent<RectTransform>().sizeDelta = baseTableVector + vector;
+
+
         SetTablesChildrenSizes(newIterationTableRectTransform, new Vector2Int(TableWidth, TableHeight));
 
         CreateCellsInTable(verticalCellsCount, horizontalCellsCount, newIterationTable);
-        PopulateCellsWithText(horizontalCellsCount, verticalCellsCount, allProperties, ringDatas);
+        PopulateCellsWithText(horizontalCellsCount, verticalCellsCount, allProperties, ringDatas, dataType);
         
         foreach(var ringData in ringDatas)
         {
             int i = ringData.ringIndex;
-            var iterationTableAddons = iterationTables.Last().transform.GetChild(2);
+            //var iterationTableAddons = iterationTables.Last().transform.GetChild(2);
+            var iterationTableAddons = iterationTableForDiffDatas[dataType].Last().transform.GetChild(2);
             var sumOfHeadloss = iterationTableAddons.GetChild(i).GetChild(1).GetComponent<TextMeshProUGUI>();
 
             AddToTableAdditionalIterationInfo(ringData, sumOfHeadloss);
-            ChangeColor(ringData, sumOfHeadloss, horizontalCellsCount, verticalCellsCount);
+            ChangeColor(ringData, sumOfHeadloss, horizontalCellsCount, verticalCellsCount, dataType);
         }
 
+        //for some reason vertcal layout is not being displayed properly after creating new instances so I have to force rebuild it
+        LayoutRebuilder.ForceRebuildLayoutImmediate(CalculationTableObject.transform.GetChild(1).GetComponent<RectTransform>()); 
     }
     void AddToTableAdditionalIterationInfo(RingData ringData, TMPro.TextMeshProUGUI sumOfHeadloss)
     {
@@ -162,7 +199,7 @@ partial class CalculationTable : MonoBehaviour
 
     }
     
-    void ChangeColor(RingData ringData, TMPro.TextMeshProUGUI sumOfHeadloss, int horizontalCellsCount, int verticalCellsCount)
+    void ChangeColor(RingData ringData, TMPro.TextMeshProUGUI sumOfHeadloss, int horizontalCellsCount, int verticalCellsCount, int dataType)
     {
         if (ringData.Iterations.Last().sumOfHeadlossBool == true)
             sumOfHeadloss.color = Color.green;
@@ -176,20 +213,20 @@ partial class CalculationTable : MonoBehaviour
 
             if (ringData.Iterations.Last().headlossList[i] == true) 
             {
-                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 2).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.green;
+                iterationTableForDiffDatas[dataType].Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 2).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.green;
             }
             else
             {
-                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 2).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.red;
+                iterationTableForDiffDatas[dataType].Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 2).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.red;
             }
 
             if (ringData.Iterations.Last().velocityList[i] == false)
             {
-                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 5).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.red;
+                iterationTableForDiffDatas[dataType].Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 5).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.red;
             }
             else
             {
-                iterationTables.Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 5).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.green;
+                iterationTableForDiffDatas[dataType].Last().transform.GetChild(1).GetChild(horizontalCellsCount * (i) + 5).GetChild(1).GetComponent<TextMeshProUGUI>().color = Color.green;
             }
 
         }
@@ -252,12 +289,12 @@ partial class CalculationTable : MonoBehaviour
         }
     }
 
-    void PopulateCellsWithText(int horizontalCellsCount, int verticalCellsCount, PropertyInfo[] allProperties, List<RingData> ringDatas)
+    void PopulateCellsWithText(int horizontalCellsCount, int verticalCellsCount, PropertyInfo[] allProperties, List<RingData> ringDatas, int dataType)
     {
 
         for (int i = 0; i < horizontalCellsCount; i++)
         {
-            iterationTables.Last().transform.GetChild(0).GetChild(i).GetChild(1).GetComponent<TextMeshProUGUI>().text = allProperties[i].Name;
+            iterationTableForDiffDatas[dataType].Last().transform.GetChild(0).GetChild(i).GetChild(1).GetComponent<TextMeshProUGUI>().text = allProperties[i].Name;
         }
         for (int i = 0; i < verticalCellsCount; i++)
         {
@@ -282,7 +319,7 @@ partial class CalculationTable : MonoBehaviour
 
                 object propertyValue = ReflectionHelper.GetPropertyValue(ringDatas[ringDataCounter].Iterations.Last().pipeCalculations[pipeIndex], propertyName);
                 decimal value = (decimal)propertyValue;
-                iterationTables.Last().transform.GetChild(1).GetChild(cellIndex).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
+                iterationTableForDiffDatas[dataType].Last().transform.GetChild(1).GetChild(cellIndex).GetChild(1).GetComponent<TextMeshProUGUI>().text = value.ToString("f2");
             }
         }
     }

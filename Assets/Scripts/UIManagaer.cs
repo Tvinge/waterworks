@@ -67,7 +67,7 @@ public class UIManager : MonoBehaviour
         dropdown.AddOptions(dropdownMenuOptions);
 ;
     }
-    void UpdateResultsOfIteration(List<RingData> ringDatas, int dataType, bool isFirstIterationForThisData)
+    void UpdateResultsOfIteration(List<RingData> ringDatas, int dataType, bool isFirstIterationForThisData, int iterationCount)
     {
         ResetUI();
         Debug.Log("update iteration results UImanager");
