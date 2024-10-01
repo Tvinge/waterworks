@@ -16,11 +16,11 @@ public class DataVersions
 
     public DataVersions()
     {
-        dataVersions = new DataVersion[4];
+        dataVersions = new DataVersion[3];
         dataVersions[(int)DataVersionType.Max] = new DataVersion();
         dataVersions[(int)DataVersionType.Min] = new DataVersion();
         dataVersions[(int)DataVersionType.MaxFire] = new DataVersion();
-        dataVersions[(int)DataVersionType.Default] = new DataVersion();
+        //dataVersions[(int)DataVersionType.Default] = new DataVersion();
     }
 
     public DataVersion this   [DataVersionType type]

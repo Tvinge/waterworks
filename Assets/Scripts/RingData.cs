@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO.Pipes;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Experimental.AI;
@@ -18,6 +19,11 @@ public class Node
         return (Node)this.MemberwiseClone();
     }
 }
+
+public class PipeRoundedDiameter
+{
+    public decimal RoundedDiameter { get; set; }
+}
 public class Pipe
 {
     public int index { get; set; }
@@ -29,6 +35,8 @@ public class Pipe
     public bool flowDirection { get; set; }
     public decimal diameter { get; set; }
     public decimal roundedDiameter { get; set; }
+    //public PipeRoundedDiameter PipeRoundedDiameter { get; set; }
+
     public decimal velocity { get; set; }
     public decimal cmValue { get; set; }
     public decimal kValue { get; set; }
@@ -38,7 +46,6 @@ public class Pipe
     public Pipe(int index)
     {
         this.index = index;
-        //this.velocity = velocity;
     }
     public Pipe DeepCopy(Pipe pipe)
     {
@@ -51,6 +58,7 @@ public class Pipe
         newPipe.designFlow = this.designFlow;
         newPipe.diameter = this.diameter;
         newPipe.roundedDiameter = this.roundedDiameter;
+        //newPipe.PipeRoundedDiameter = this.PipeRoundedDiameter;
         newPipe.velocity = this.velocity;
         newPipe.cmValue = this.cmValue;
         newPipe.kValue = this.kValue;
@@ -108,6 +116,7 @@ public class RingData
     public Dictionary<PipeKey, Pipe> PipesDictionary { get; set; }
     public List<Pipe> Pipes;
     public List<Node> Nodes;
+   // public List<decimal> SharedPipeDiameters { get; set; }
     public Dictionary<PipeKey, bool> PipesInMultipleRings { get; set; }
     public List<Pipe> PipesInManyRings { get; set; }
 
@@ -136,9 +145,9 @@ public class RingData
         //public decimal Velocity { get; set; }
         public int Index { get; set; }
         public decimal DesignFlow { get; set; }
-        public decimal HeadLoss { get; set; }
-        public decimal Quotient { get; set; }
-        public decimal DeltaDesignFlow { get; set; }
+        public decimal HeadLoss { get; set; }//deltah
+        public decimal Quotient { get; set; }//deltah/Q
+        public decimal DeltaDesignFlow { get; set; }//detlaQ
         public decimal KValue { get; set; }
         public decimal finalVelocity { get; set; }
     }

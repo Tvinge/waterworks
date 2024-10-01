@@ -56,7 +56,7 @@ public class AppLogic : MonoBehaviour
             dataVersions[DataVersionType.Max] = maxDataVersion;
             dataVersions[DataVersionType.Min] = minDataVersion;
             dataVersions[DataVersionType.MaxFire] = maxFireDataVersion;
-            dataVersions[DataVersionType.Default] = defaultDataVersion;
+            //dataVersions[DataVersionType.Default] = defaultDataVersion;
         }
 
         SetupOtherDataVersions();
